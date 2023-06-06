@@ -29,10 +29,11 @@ struct Token {
     Token *next;     // 次の入力トークン
     int val;         // kindがTK_NUMの場合、その数値
     char *str;       // トークン文字列
+    int len;         // トークンの長さ
 };
 
-bool ts_consume(char op);
-void ts_expect(char op);
+bool ts_consume(char *op);
+void ts_expect(char *op);
 int ts_expect_number();
 void ts_init(char *p);
 
@@ -46,6 +47,10 @@ typedef enum {
     ND_SUB,  // -
     ND_MUL,  // *
     ND_DIV,  // /
+    ND_EQ,   // ==
+    ND_NE,   // !=
+    ND_LT,   // <
+    ND_LE,   // <=
     ND_NUM,  // 整数
 } NodeKind;
 

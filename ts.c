@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "compiler.h"
 
 // 入力されたプログラム
@@ -31,16 +33,19 @@ static Token *new_token(TokenKind kind, Token *cur, char *str) {
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
-bool ts_consume(char op) {
-    if (token->kind != TK_RESERVED || token->str[0] != op) return false;
+bool ts_consume(char *op) {
+    if (token->kind != TK_RESERVED || strlen(op) != token->len ||
+        memcmp(token->str, op, token->len))
+        return false;
     token = token->next;
     return true;
 }
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
-void ts_expect(char op) {
-    if (token->kind != TK_RESERVED || token->str[0] != op)
+void ts_expect(char *op) {
+    if (token->kind != TK_RESERVED || strlen(op) != token->len ||
+        memcmp(token->str, op, token->len))
         error_at(token->str, "'%c'ではありません", op);
     token = token->next;
 }
@@ -69,9 +74,18 @@ void ts_init(char *p) {
             continue;
         }
 
+        if (!strncmp(p, "<=", 2) || !strncmp(p, ">=", 2) ||
+            !strncmp(p, "==", 2) || !strncmp(p, "!=", 2)) {
+            cur = new_token(TK_RESERVED, cur, p);
+            cur->len = 2;
+            p += 2;
+            continue;
+        }
+
         if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' ||
-            *p == ')') {
+            *p == ')' || *p == '<' || *p == '>') {
             cur = new_token(TK_RESERVED, cur, p++);
+            cur->len = 1;
             continue;
         }
 
