@@ -9,21 +9,6 @@
    "-Wall",
    "-c",
    "-o",
-   "codegen.o",
-   "codegen.c"
-  ],
-  "file": "codegen.c"
- },
- {
-  "directory": "/home/ihoronir/compiler",
-  "arguments": [
-   "cc",
-   "-std=c11",
-   "-g",
-   "-static",
-   "-Wall",
-   "-c",
-   "-o",
    "main.o",
    "main.c"
   ],
@@ -39,10 +24,10 @@
    "-Wall",
    "-c",
    "-o",
-   "parse.o",
-   "parse.c"
+   "ast.o",
+   "ast.c"
   ],
-  "file": "parse.c"
+  "file": "ast.c"
  },
  {
   "directory": "/home/ihoronir/compiler",
@@ -54,9 +39,24 @@
    "-Wall",
    "-c",
    "-o",
-   "tokenize.o",
-   "tokenize.c"
+   "gen.o",
+   "gen.c"
   ],
-  "file": "tokenize.c"
+  "file": "gen.c"
+ },
+ {
+  "directory": "/home/ihoronir/compiler",
+  "arguments": [
+   "cc",
+   "-std=c11",
+   "-g",
+   "-static",
+   "-Wall",
+   "-c",
+   "-o",
+   "ts.o",
+   "ts.c"
+  ],
+  "file": "ts.c"
  }
 ]

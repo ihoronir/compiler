@@ -4,4 +4,5 @@ tmp*
 a.out
 compiler
 .cache/
+compile_commands.json
 

@@ -43,15 +43,15 @@ void ts_init(char *p);
 
 // 抽象構文木のノードの種類
 typedef enum {
+    ND_NUM,  // 整数
     ND_ADD,  // +
     ND_SUB,  // -
     ND_MUL,  // *
     ND_DIV,  // /
-    ND_EQ,   // ==
-    ND_NE,   // !=
     ND_LT,   // <
     ND_LE,   // <=
-    ND_NUM,  // 整数
+    ND_EQ,   // ==
+    ND_NE,   // !=
 } NodeKind;
 
 typedef struct Node Node;
