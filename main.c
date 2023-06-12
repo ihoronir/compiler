@@ -1,13 +1,27 @@
+#include <stdlib.h>
+
 #include "compiler.h"
 
-// エラーを報告するための関数
-// printfと同じ引数を取る
-void error(char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    fprintf(stderr, "\n");
-    exit(1);
+void error(char *msg) {
+    fprintf(stderr, "%s\n", msg);
+    exit(EXIT_SUCCESS);
+}
+
+void error_at(int line, int row, char *msg) {
+    printf("(%d, %d) %s\n", line, row, msg);
+    exit(EXIT_FAILURE);
+}
+
+void *checkd_malloc(unsigned long len) {
+    void *ptr = malloc(len);
+    if (ptr == NULL) error("malloc failed");
+    return ptr;
+}
+
+void *checkd_realloc(void *ptr, unsigned long len) {
+    void *new_ptr = realloc(ptr, len);
+    if (new_ptr == NULL) error("realloc failed");
+    return new_ptr;
 }
 
 int main(int argc, char **argv) {
@@ -18,7 +32,7 @@ int main(int argc, char **argv) {
 
     // トークナイズしてパースする
     char *user_input = argv[1];
-    ts_init(user_input);
+    tokenize(user_input);
     ast_init();
 
     // アセンブリの前半部分を出力

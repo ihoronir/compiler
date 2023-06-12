@@ -8,7 +8,10 @@
 //
 // main.c
 //
-void error(char *fmt, ...);
+void error(char *msg);
+void error_at(int line, int row, char *msg);
+void *checkd_malloc(unsigned long len);
+void *checkd_realloc(void *ptr, unsigned long len);
 
 //
 // ts.c
@@ -16,9 +19,31 @@ void error(char *fmt, ...);
 
 // トークンの種類
 typedef enum {
-    TK_RESERVED,  // 記号
-    TK_NUM,       // 整数トークン
-    TK_EOF,       // 入力の終わりを表すトークン
+    // TK_RESERVED,  // 記号
+    TK_RETURN,
+
+    TK_NUM,
+
+    TK_IDENTIFIER,
+
+    TK_LEFT_PARENTHESES,
+    TK_RIGHT_PARENTHESES,
+
+    TK_PLUS,
+    TK_MINUS,
+    TK_ASTERISK,
+    TK_SLASH,
+
+    TK_LESS,
+    TK_MORE,
+
+    TK_LESS_OR_EQUAL,
+    TK_MORE_OR_EQUAL,
+
+    TK_EQUAL,
+    TK_NOT_EQUAL,
+
+    TK_EOF,  // 入力の終わりを表すトークン
 } TokenKind;
 
 typedef struct Token Token;
@@ -26,16 +51,15 @@ typedef struct Token Token;
 // トークン型
 struct Token {
     TokenKind kind;  // トークンの型
-    Token *next;     // 次の入力トークン
     int val;         // kindがTK_NUMの場合、その数値
     char *str;       // トークン文字列
-    int len;         // トークンの長さ
+    int line;        // トークンの行
+    int row;         // トークンの列
 };
 
-bool ts_consume(char *op);
-void ts_expect(char *op);
-int ts_expect_number();
-void ts_init(char *p);
+Token *token_next();
+Token *token_peek();
+void tokenize(char *p);
 
 //
 // ast.c
@@ -43,15 +67,17 @@ void ts_init(char *p);
 
 // 抽象構文木のノードの種類
 typedef enum {
-    ND_NUM,  // 整数
-    ND_ADD,  // +
-    ND_SUB,  // -
-    ND_MUL,  // *
-    ND_DIV,  // /
-    ND_LT,   // <
-    ND_LE,   // <=
-    ND_EQ,   // ==
-    ND_NE,   // !=
+    ND_NUM,    // 整数
+    ND_LVAR,   // ローカル変数
+    ND_MUL,    // *
+    ND_DIV,    // /
+    ND_ADD,    // +
+    ND_SUB,    // -
+    ND_LT,     // <
+    ND_LE,     // <=
+    ND_EQ,     // ==
+    ND_NE,     // !=
+    ND_ASSGIN  // =
 } NodeKind;
 
 typedef struct Node Node;
@@ -62,6 +88,7 @@ struct Node {
     Node *lhs;      // 左辺
     Node *rhs;      // 右辺
     int val;        // kindがND_NUMの場合のみ使う
+    int offset;     // kindがND_ASSGINの場合のみ使う
 };
 
 void ast_init();
