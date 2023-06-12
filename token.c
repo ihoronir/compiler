@@ -33,18 +33,18 @@ static void tokens_buf_push_uncheckd(TokenKind tk, int line, int row) {
 }
 
 static void tokens_buf_push(TokenKind tk, int line, int row) {
-    if (tk == TK_NUM) error("new_token: Use new_token_num");
-    if (tk == TK_IDENTIFIER) error("new_token: Use new_token_identifier");
+    if (tk == TK_INT) error("new_token: Use new_token_integer");
+    if (tk == TK_IDENT) error("new_token: Use new_token_ident");
     return tokens_buf_push_uncheckd(tk, line, row);
 }
 
-static void tokens_buf_push_num(int val, int line, int row) {
-    tokens_buf_push_uncheckd(TK_NUM, line, row);
+static void tokens_buf_push_int(int val, int line, int row) {
+    tokens_buf_push_uncheckd(TK_INT, line, row);
     tokens_buf_ref_to_last()->val = val;
 }
 
-static void tokens_buf_push_identifier(char *str, int line, int row) {
-    tokens_buf_push_uncheckd(TK_IDENTIFIER, line, row);
+static void tokens_buf_push_ident(char *str, int line, int row) {
+    tokens_buf_push_uncheckd(TK_IDENT, line, row);
     tokens_buf_ref_to_last()->str = str;
 }
 
@@ -86,6 +86,7 @@ void tokenize(char *p) {
         switch (*p) {
             case '\n':
                 line++;
+                row = 0;
                 p++;
                 continue;
 
@@ -106,25 +107,25 @@ void tokenize(char *p) {
         }
 
         if (!strncmp(p, "<=", 2)) {
-            tokens_buf_push(TK_LESS_OR_EQUAL, line, row);
+            tokens_buf_push(TK_LESS_EQUAL, line, row);
             p += 2;
             continue;
         }
 
         if (!strncmp(p, ">=", 2)) {
-            tokens_buf_push(TK_MORE_OR_EQUAL, line, row);
+            tokens_buf_push(TK_MORE_EQUAL, line, row);
             p += 2;
             continue;
         }
 
         if (!strncmp(p, "==", 2)) {
-            tokens_buf_push(TK_EQUAL, line, row);
+            tokens_buf_push(TK_EQUAL_EQUAL, line, row);
             p += 2;
             continue;
         }
 
         if (!strncmp(p, "!=", 2)) {
-            tokens_buf_push(TK_NOT_EQUAL, line, row);
+            tokens_buf_push(TK_EXCL_EQUAL, line, row);
             p += 2;
             continue;
         }
@@ -147,11 +148,11 @@ void tokenize(char *p) {
                 p++;
                 continue;
             case '(':
-                tokens_buf_push(TK_LEFT_PARENTHESES, line, row);
+                tokens_buf_push(TK_LEFT_PAREN, line, row);
                 p++;
                 continue;
             case ')':
-                tokens_buf_push(TK_RIGHT_PARENTHESES, line, row);
+                tokens_buf_push(TK_RIGHT_PAREN, line, row);
                 p++;
                 continue;
             case '<':
@@ -162,10 +163,18 @@ void tokenize(char *p) {
                 tokens_buf_push(TK_MORE, line, row);
                 p++;
                 continue;
+            case '=':
+                tokens_buf_push(TK_EQUAL, line, row);
+                p++;
+                continue;
+            case ';':
+                tokens_buf_push(TK_SEMICOLON, line, row);
+                p++;
+                continue;
         }
 
         if (isdigit(*p)) {
-            tokens_buf_push_num(strtol(p, &p, 10), line, row);
+            tokens_buf_push_int(strtol(p, &p, 10), line, row);
             continue;
         }
 
@@ -177,7 +186,7 @@ void tokenize(char *p) {
 
         char *str;
         if ((str = identifier(&p)) != NULL) {
-            tokens_buf_push_identifier(str, line, row);
+            tokens_buf_push_ident(str, line, row);
             continue;
         }
 
@@ -186,21 +195,3 @@ void tokenize(char *p) {
 
     tokens_buf_push(TK_EOF, line, row);
 }
-
-// 次のトークンが期待している記号のときには、トークンを1つ読み進める。
-// それ以外の場合にはエラーを報告する。
-// void ts_expect(char *op) {
-//    if (token->kind != TK_RESERVED || strlen(op) != token->len ||
-//        memcmp(token->str, op, token->len))
-//        error_at(token->str, "'%c'ではありません", op);
-//    token = token->next;
-//}
-
-// 次のトークンが数値の場合、トークンを1つ読み進めてその数値を返す。
-// それ以外の場合にはエラーを報告する。
-// int ts_expect_number() {
-//    if (token->kind != TK_NUM) error_at(token->str, "数ではありません");
-//    int val = token->val;
-//    token = token->next;
-//    return val;
-//}

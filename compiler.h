@@ -22,12 +22,16 @@ typedef enum {
     // TK_RESERVED,  // 記号
     TK_RETURN,
 
-    TK_NUM,
+    TK_INT,
 
-    TK_IDENTIFIER,
+    TK_IDENT,
 
-    TK_LEFT_PARENTHESES,
-    TK_RIGHT_PARENTHESES,
+    TK_SEMICOLON,
+
+    TK_EQUAL,
+
+    TK_LEFT_PAREN,
+    TK_RIGHT_PAREN,
 
     TK_PLUS,
     TK_MINUS,
@@ -37,11 +41,11 @@ typedef enum {
     TK_LESS,
     TK_MORE,
 
-    TK_LESS_OR_EQUAL,
-    TK_MORE_OR_EQUAL,
+    TK_LESS_EQUAL,
+    TK_MORE_EQUAL,
 
-    TK_EQUAL,
-    TK_NOT_EQUAL,
+    TK_EQUAL_EQUAL,
+    TK_EXCL_EQUAL,
 
     TK_EOF,  // 入力の終わりを表すトークン
 } TokenKind;
@@ -51,7 +55,7 @@ typedef struct Token Token;
 // トークン型
 struct Token {
     TokenKind kind;  // トークンの型
-    int val;         // kindがTK_NUMの場合、その数値
+    int val;         // kindがTK_INTの場合、その数値
     char *str;       // トークン文字列
     int line;        // トークンの行
     int row;         // トークンの列
@@ -67,17 +71,18 @@ void tokenize(char *p);
 
 // 抽象構文木のノードの種類
 typedef enum {
-    ND_NUM,    // 整数
-    ND_LVAR,   // ローカル変数
-    ND_MUL,    // *
-    ND_DIV,    // /
-    ND_ADD,    // +
-    ND_SUB,    // -
-    ND_LT,     // <
-    ND_LE,     // <=
-    ND_EQ,     // ==
-    ND_NE,     // !=
-    ND_ASSGIN  // =
+    ND_CONST,          // 定数
+    ND_LOCAL_VAR,      // ローカル変数
+    ND_MUL,            // *
+    ND_DIV,            // /
+    ND_ADD,            // +
+    ND_SUB,            // -
+    ND_LESS,           // <
+    ND_LESS_OR_EQUAL,  // <=
+    ND_EQUAL,          // ==
+    ND_NOT_EQUAL,      // !=
+    ND_ASSGIN,         // =
+    ND_RETURN          // return
 } NodeKind;
 
 typedef struct Node Node;
@@ -85,14 +90,22 @@ typedef struct Node Node;
 // 抽象構文木のノードの型
 struct Node {
     NodeKind kind;  // ノードの型
-    Node *lhs;      // 左辺
+    Node *lhs;      // 左辺・返り値
     Node *rhs;      // 右辺
-    int val;        // kindがND_NUMの場合のみ使う
+    int val;        // kindがND_CONSTの場合のみ使う
     int offset;     // kindがND_ASSGINの場合のみ使う
 };
 
-void ast_init();
-void ast_compile();
+extern Node *code[100];
+
+void program();
+
+///
+/// local_vars.c
+///
+
+void init_local_vars_buf();
+int get_offset(char *str);
 
 ///
 /// gen.c

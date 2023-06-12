@@ -1,14 +1,19 @@
 #include "compiler.h"
 
-static Node *code[100];
-
-static Node *ast;
+Node *code[100];
 
 static int consume(TokenKind tk) {
     Token *token = token_peek();
     if (token->kind != tk) return 0;
     token_next();
     return 1;
+}
+
+static char *consume_ident() {
+    Token *token = token_peek();
+    if (token->kind != TK_IDENT) return NULL;
+    token_next();
+    return token->str;
 }
 
 static void expect(TokenKind tk) {
@@ -18,34 +23,40 @@ static void expect(TokenKind tk) {
     token_next();
 }
 
-static int expect_number() {
+static int expect_int() {
     Token *token = token_peek();
-    if (token->kind != TK_NUM)
+    if (token->kind != TK_INT)
         error_at(token->line, token->row, "数ではありません");
     token_next();
     return token->val;
 }
 
-static char *expect_identifier() {
-    Token *token = token_peek();
-    if (token->kind != TK_IDENTIFIER)
-        error_at(token->line, token->row, "識別子ではありません");
-    token_next();
-    return token->str;
-}
-
 static Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
-    Node *node = calloc(1, sizeof(Node));
+    Node *node = checkd_malloc(sizeof(Node));
     node->kind = kind;
     node->lhs = lhs;
     node->rhs = rhs;
     return node;
 }
 
-static Node *new_node_num(int val) {
-    Node *node = calloc(1, sizeof(Node));
-    node->kind = ND_NUM;
+static Node *new_node_local_var(int offset) {
+    Node *node = checkd_malloc(sizeof(Node));
+    node->kind = ND_LOCAL_VAR;
+    node->offset = offset;
+    return node;
+}
+
+static Node *new_node_const(int val) {
+    Node *node = checkd_malloc(sizeof(Node));
+    node->kind = ND_CONST;
     node->val = val;
+    return node;
+}
+
+static Node *new_node_return(Node *lhs) {
+    Node *node = checkd_malloc(sizeof(Node));
+    node->kind = ND_RETURN;
+    node->lhs = lhs;
     return node;
 }
 
@@ -53,24 +64,33 @@ static Node *expr();
 
 // primary = num | ident | "(" expr ")"
 static Node *primary() {
-    // 次のトークンが"("なら、"(" expr ")"のはず
-    if (consume(TK_LEFT_PARENTHESES)) {
+    if (consume(/* ( */ TK_LEFT_PAREN)) {
         Node *node = expr();
-        expect(TK_RIGHT_PARENTHESES);
+        expect(/* ) */ TK_RIGHT_PAREN);
         return node;
     }
 
+    char *str;
+    if ((str = consume_ident()) != NULL) {
+        int offset = get_offset(str);
+
+        return new_node_local_var(offset);
+    }
+
     // そうでなければ数値のはず
-    return new_node_num(expect_number());
+    return new_node_const(expect_int());
 }
 
 // unary = ("+" | "-")? primary
 static Node *unary() {
     for (;;) {
-        if (consume(TK_PLUS))
+        if (consume(/* + */ TK_PLUS)) {
             return primary();
-        else if (consume(TK_MINUS))
-            return new_node(ND_SUB, new_node_num(0), primary());
+
+        } else if (consume(/* - */ TK_MINUS)) {
+            return new_node(ND_SUB, new_node_const(0), primary());
+        }
+
         return primary();
     }
 }
@@ -80,12 +100,15 @@ static Node *mul() {
     Node *node = unary();
 
     for (;;) {
-        if (consume(TK_ASTERISK))
+        if (consume(/* * */ TK_ASTERISK)) {
             node = new_node(ND_MUL, node, unary());
-        else if (consume(TK_SLASH))
+
+        } else if (consume(/* / */ TK_SLASH)) {
             node = new_node(ND_DIV, node, unary());
-        else
+
+        } else {
             return node;
+        }
     }
 }
 
@@ -94,12 +117,15 @@ static Node *add() {
     Node *node = mul();
 
     for (;;) {
-        if (consume(TK_PLUS))
+        if (consume(/* + */ TK_PLUS)) {
             node = new_node(ND_ADD, node, mul());
-        else if (consume(TK_MINUS))
+
+        } else if (consume(/* - */ TK_MINUS)) {
             node = new_node(ND_SUB, node, mul());
-        else
+
+        } else {
             return node;
+        }
     }
 }
 
@@ -108,16 +134,21 @@ static Node *relational() {
     Node *node = add();
 
     for (;;) {
-        if (consume(TK_LESS))
-            node = new_node(ND_LT, node, add());
-        else if (consume(TK_LESS_OR_EQUAL))
-            node = new_node(ND_LE, node, add());
-        else if (consume(TK_MORE))
-            node = new_node(ND_LT, add(), node);
-        else if (consume(TK_MORE_OR_EQUAL))
-            node = new_node(ND_LE, add(), node);
-        else
+        if (consume(/* < */ TK_LESS)) {
+            node = new_node(ND_LESS, node, add());
+
+        } else if (consume(/* <= */ TK_LESS_EQUAL)) {
+            node = new_node(ND_LESS_OR_EQUAL, node, add());
+
+        } else if (consume(/* > */ TK_MORE)) {
+            node = new_node(ND_LESS, add(), node);
+
+        } else if (consume(/* >= */ TK_MORE_EQUAL)) {
+            node = new_node(ND_LESS_OR_EQUAL, add(), node);
+
+        } else {
             return node;
+        }
     }
 }
 
@@ -126,21 +157,57 @@ static Node *equality() {
     Node *node = relational();
 
     for (;;) {
-        if (consume(TK_EQUAL))
-            node = new_node(ND_EQ, node, relational());
-        else if (consume(TK_NOT_EQUAL))
-            node = new_node(ND_NE, node, relational());
-        else
+        if (consume(/* == */ TK_EQUAL_EQUAL)) {
+            node = new_node(ND_EQUAL, node, relational());
+
+        } else if (consume(/* != */ TK_EXCL_EQUAL)) {
+            node = new_node(ND_NOT_EQUAL, node, relational());
+
+        } else {
             return node;
+        }
+    }
+}
+// assign = equality ("=" assign)?
+static Node *assign() {
+    Node *node = equality();
+
+    for (;;) {
+        if (consume(/* = */ TK_EQUAL)) {
+            node = new_node(ND_ASSGIN, node, assign());
+
+        } else {
+            return node;
+        }
     }
 }
 
-// program    = stmt*
-// stmt       = expr ";"
-// expr       = assign
-// assign     = equality ("=" assign)?
-static Node *expr() { return equality(); }
+// expr = assign
+static Node *expr() { return assign(); }
 
-void ast_init() { ast = expr(); };
+// stmt = expr ";" | "return" expr ";"
+static Node *stmt() {
+    Node *node;
 
-void ast_compile() { gen(ast); }
+    if (consume(TK_RETURN)) {
+        node = new_node_return(expr());
+
+    } else {
+        node = expr();
+    }
+
+    expect(TK_SEMICOLON);
+    return node;
+}
+
+// program = stmt*
+void program() {
+    int i = 0;
+    init_local_vars_buf();
+
+    while (token_peek()->kind != TK_EOF) {
+        code[i++] = stmt();
+    }
+
+    code[i] = NULL;
+}
