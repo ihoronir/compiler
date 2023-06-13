@@ -3,31 +3,31 @@
 Node *code[100];
 
 static int consume(TokenKind tk) {
-    Token *token = token_peek();
+    Token *token = tokens_peek();
     if (token->kind != tk) return 0;
-    token_next();
+    tokens_next();
     return 1;
 }
 
 static char *consume_ident() {
-    Token *token = token_peek();
+    Token *token = tokens_peek();
     if (token->kind != TK_IDENT) return NULL;
-    token_next();
+    tokens_next();
     return token->str;
 }
 
 static void expect(TokenKind tk) {
-    Token *token = token_peek();
+    Token *token = tokens_peek();
     if (token->kind != tk)
         error_at(token->line, token->row, "期待される字句ではありません");
-    token_next();
+    tokens_next();
 }
 
 static int expect_int() {
-    Token *token = token_peek();
+    Token *token = tokens_peek();
     if (token->kind != TK_INT)
         error_at(token->line, token->row, "数ではありません");
-    token_next();
+    tokens_next();
     return token->val;
 }
 
@@ -172,14 +172,11 @@ static Node *equality() {
 static Node *assign() {
     Node *node = equality();
 
-    for (;;) {
-        if (consume(/* = */ TK_EQUAL)) {
-            node = new_node(ND_ASSGIN, node, assign());
-
-        } else {
-            return node;
-        }
+    if (consume(/* = */ TK_EQUAL)) {
+        node = new_node(ND_ASSIGN, node, assign());
     }
+
+    return node;
 }
 
 // expr = assign
@@ -205,7 +202,7 @@ void program() {
     int i = 0;
     init_local_vars_buf();
 
-    while (token_peek()->kind != TK_EOF) {
+    while (tokens_peek()->kind != TK_EOF) {
         code[i++] = stmt();
     }
 

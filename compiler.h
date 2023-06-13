@@ -19,7 +19,6 @@ void *checkd_realloc(void *ptr, unsigned long len);
 
 // トークンの種類
 typedef enum {
-    // TK_RESERVED,  // 記号
     TK_RETURN,
 
     TK_INT,
@@ -50,19 +49,21 @@ typedef enum {
     TK_EOF,  // 入力の終わりを表すトークン
 } TokenKind;
 
-typedef struct Token Token;
-
 // トークン型
-struct Token {
+typedef struct Token {
     TokenKind kind;  // トークンの型
     int val;         // kindがTK_INTの場合、その数値
     char *str;       // トークン文字列
     int line;        // トークンの行
     int row;         // トークンの列
-};
+} Token;
 
-Token *token_next();
-Token *token_peek();
+void tokens_push(TokenKind tk, int line, int row);
+void tokens_push_int(int val, int line, int row);
+void tokens_push_ident(char *str, int line, int row);
+Token *tokens_next();
+Token *tokens_peek();
+
 void tokenize(char *p);
 
 //
@@ -81,20 +82,18 @@ typedef enum {
     ND_LESS_OR_EQUAL,  // <=
     ND_EQUAL,          // ==
     ND_NOT_EQUAL,      // !=
-    ND_ASSGIN,         // =
+    ND_ASSIGN,         // =
     ND_RETURN          // return
 } NodeKind;
 
-typedef struct Node Node;
-
 // 抽象構文木のノードの型
-struct Node {
-    NodeKind kind;  // ノードの型
-    Node *lhs;      // 左辺・返り値
-    Node *rhs;      // 右辺
-    int val;        // kindがND_CONSTの場合のみ使う
-    int offset;     // kindがND_ASSGINの場合のみ使う
-};
+typedef struct Node {
+    NodeKind kind;     // ノードの型
+    struct Node *lhs;  // 左辺・返り値
+    struct Node *rhs;  // 右辺
+    int val;           // kindがND_CONSTの場合のみ使う
+    int offset;        // kindがND_ASSGINの場合のみ使う
+} Node;
 
 extern Node *code[100];
 
@@ -111,4 +110,4 @@ int get_offset(char *str);
 /// gen.c
 ///
 
-void gen(Node *node);
+void gen(Node *node, int indent);
