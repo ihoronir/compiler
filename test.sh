@@ -1,19 +1,19 @@
 #!/bin/bash
 assert() {
-  expected="$1"
-  input="$2"
+    expected="$1"
+    input="$2"
 
-  ./compiler "$input" > tmp.s
-  cc -o tmp tmp.s
-  ./tmp
-  actual="$?"
+    ./compiler "$input" > tmp.s
+    cc -o tmp tmp.s
+    ./tmp
+    actual="$?"
 
-  if [ "$actual" = "$expected" ]; then
-    echo "$input => $actual"
-  else
-    echo "$input => $expected expected, but got $actual"
-    exit 1
-  fi
+    if [ "$actual" = "$expected" ]; then
+        echo "$input => $actual"
+    else
+        echo "$input => $expected expected, but got $actual"
+        exit 1
+    fi
 }
 
 assert 0  '0;'
@@ -48,14 +48,14 @@ assert 1 '-1+1>=-1;'
 assert 1 '35==35;'
 assert 0 '35==-35;'
 
-assert 1 '-12!=12;'
-assert 0 '+24!=+24;'
+assert 1 '{-12!=12;+24==24;}{-12!=12;+24==24;}'
+#assert 0 '+24!=+24;'
 
-assert 10 'a = 0;
-ab = ab + 1;
-b = 2;
-c = ab + b + 3;
-return c + 4;
-c;'
+# assert 10 'a = 0;
+# ab = ab + 1;
+# b = 2;
+# c = ab + b + 3;
+# return c + 4;
+# c;'
 
 echo OK

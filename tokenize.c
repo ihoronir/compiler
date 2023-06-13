@@ -53,6 +53,36 @@ void tokenize(char *p) {
                 break;
         }
 
+        if (strncmp(p, "return", 6) == 0 && !is_alnum(p[6])) {
+            tokens_push(TK_RETURN, line, row);
+            p += 6;
+            continue;
+        }
+
+        if (strncmp(p, "while", 5) == 0 && !is_alnum(p[5])) {
+            tokens_push(TK_WHILE, line, row);
+            p += 5;
+            continue;
+        }
+
+        if (strncmp(p, "else", 4) == 0 && !is_alnum(p[4])) {
+            tokens_push(TK_ELSE, line, row);
+            p += 4;
+            continue;
+        }
+
+        if (strncmp(p, "for", 3) == 0 && !is_alnum(p[3])) {
+            tokens_push(TK_FOR, line, row);
+            p += 3;
+            continue;
+        }
+
+        if (strncmp(p, "if", 2) == 0 && !is_alnum(p[2])) {
+            tokens_push(TK_IF, line, row);
+            p += 2;
+            continue;
+        }
+
         if (!strncmp(p, "<=", 2)) {
             tokens_push(TK_LESS_EQUAL, line, row);
             p += 2;
@@ -102,6 +132,14 @@ void tokenize(char *p) {
                 tokens_push(TK_RIGHT_PAREN, line, row);
                 p++;
                 continue;
+            case '{':
+                tokens_push(TK_LEFT_BRACE, line, row);
+                p++;
+                continue;
+            case '}':
+                tokens_push(TK_RIGHT_BRACE, line, row);
+                p++;
+                continue;
             case '<':
                 tokens_push(TK_LESS, line, row);
                 p++;
@@ -122,12 +160,6 @@ void tokenize(char *p) {
 
         if (isdigit(*p)) {
             tokens_push_int(strtol(p, &p, 10), line, row);
-            continue;
-        }
-
-        if (strncmp(p, "return", 6) == 0 && !is_alnum(p[6])) {
-            tokens_push(TK_RETURN, line, row);
-            p += 6;
             continue;
         }
 

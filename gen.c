@@ -11,7 +11,7 @@ static void print_with_indent(int indent, char *fmt, ...) {
     putchar('\n');
 }
 
-static void gen_address(Node *node, int indent) {
+static void gen_address(Node node, int indent) {
     if (node->kind != ND_LOCAL_VAR) error("代入の左辺値が変数ではありません");
     print_with_indent(indent, "# gen_address(");
     print_with_indent(indent + 1, "mov rax, rbp");
@@ -20,12 +20,25 @@ static void gen_address(Node *node, int indent) {
     print_with_indent(indent, "# )");
 }
 
-void gen(Node *node, int indent) {
+void gen(Node node, int indent) {
+    int i;
     switch (node->kind) {
+        case ND_BLOCK:
+            print_with_indent(indent, "# ND_BLOCK(");
+
+            for (i = 0; i < node->childs->len; i++) {
+                gen(node_get_child(node, i), indent + 1);
+                print_with_indent(indent + 1, "pop rax");
+            }
+            print_with_indent(indent + 1, "push rax");
+
+            print_with_indent(indent, "# )");
+            break;
+
         case ND_RETURN:
             print_with_indent(indent, "# ND_RETURN(");
 
-            gen(node->lhs, indent + 1);
+            gen(node_get_child(node, 0), indent + 1);
 
             print_with_indent(indent + 1, "pop rax");
             print_with_indent(indent + 1, "mov rsp, rbp");
@@ -58,8 +71,8 @@ void gen(Node *node, int indent) {
         case ND_ASSIGN:
             print_with_indent(indent, "# ND_ASSIGN(");
 
-            gen_address(node->lhs, indent + 1);
-            gen(node->rhs, indent + 1);
+            gen_address(node_get_child(node, 0), indent + 1);
+            gen(node_get_child(node, 1), indent + 1);
 
             print_with_indent(indent + 1, "pop rdi");
             print_with_indent(indent + 1, "pop rax");
@@ -72,8 +85,8 @@ void gen(Node *node, int indent) {
         case ND_ADD:
             print_with_indent(indent, "# ND_ADD(");
 
-            gen(node->lhs, indent + 1);
-            gen(node->rhs, indent + 1);
+            gen(node_get_child(node, 0), indent + 1);
+            gen(node_get_child(node, 1), indent + 1);
 
             print_with_indent(indent + 1, "pop rdi");
             print_with_indent(indent + 1, "pop rax");
@@ -87,8 +100,8 @@ void gen(Node *node, int indent) {
         case ND_SUB:
             print_with_indent(indent, "# ND_SUB(");
 
-            gen(node->lhs, indent + 1);
-            gen(node->rhs, indent + 1);
+            gen(node_get_child(node, 0), indent + 1);
+            gen(node_get_child(node, 1), indent + 1);
 
             print_with_indent(indent + 1, "pop rdi");
             print_with_indent(indent + 1, "pop rax");
@@ -102,8 +115,8 @@ void gen(Node *node, int indent) {
         case ND_MUL:
             print_with_indent(indent, "# ND_MUL(");
 
-            gen(node->lhs, indent + 1);
-            gen(node->rhs, indent + 1);
+            gen(node_get_child(node, 0), indent + 1);
+            gen(node_get_child(node, 1), indent + 1);
 
             print_with_indent(indent + 1, "pop rdi");
             print_with_indent(indent + 1, "pop rax");
@@ -117,8 +130,8 @@ void gen(Node *node, int indent) {
         case ND_DIV:
             print_with_indent(indent, "# ND_DIV(");
 
-            gen(node->lhs, indent + 1);
-            gen(node->rhs, indent + 1);
+            gen(node_get_child(node, 0), indent + 1);
+            gen(node_get_child(node, 1), indent + 1);
 
             print_with_indent(indent + 1, "pop rdi");
             print_with_indent(indent + 1, "pop rax");
@@ -133,8 +146,8 @@ void gen(Node *node, int indent) {
         case ND_EQUAL:
             print_with_indent(indent, "# ND_EQUAL(");
 
-            gen(node->lhs, indent + 1);
-            gen(node->rhs, indent + 1);
+            gen(node_get_child(node, 0), indent + 1);
+            gen(node_get_child(node, 1), indent + 1);
 
             print_with_indent(indent + 1, "pop rdi");
             print_with_indent(indent + 1, "pop rax");
@@ -150,8 +163,8 @@ void gen(Node *node, int indent) {
         case ND_NOT_EQUAL:
             print_with_indent(indent, "# ND_NOT_EQUAL(");
 
-            gen(node->lhs, indent + 1);
-            gen(node->rhs, indent + 1);
+            gen(node_get_child(node, 0), indent + 1);
+            gen(node_get_child(node, 1), indent + 1);
 
             print_with_indent(indent + 1, "pop rdi");
             print_with_indent(indent + 1, "pop rax");
@@ -167,8 +180,8 @@ void gen(Node *node, int indent) {
         case ND_LESS:
             print_with_indent(indent, "# ND_LESS(");
 
-            gen(node->lhs, indent + 1);
-            gen(node->rhs, indent + 1);
+            gen(node_get_child(node, 0), indent + 1);
+            gen(node_get_child(node, 1), indent + 1);
 
             print_with_indent(indent + 1, "pop rdi");
             print_with_indent(indent + 1, "pop rax");
@@ -184,8 +197,8 @@ void gen(Node *node, int indent) {
         case ND_LESS_OR_EQUAL:
             print_with_indent(indent, "# ND_LESS_OR_EQUAL(");
 
-            gen(node->lhs, indent + 1);
-            gen(node->rhs, indent + 1);
+            gen(node_get_child(node, 0), indent + 1);
+            gen(node_get_child(node, 1), indent + 1);
 
             print_with_indent(indent + 1, "pop rdi");
             print_with_indent(indent + 1, "pop rax");

@@ -33,7 +33,6 @@ int main(int argc, char **argv) {
     // トークナイズしてパースする
     char *user_input = argv[1];
     tokenize(user_input);
-    program();
 
     // アセンブリの前半部分を出力
     printf(".intel_syntax noprefix\n");
@@ -46,14 +45,7 @@ int main(int argc, char **argv) {
     printf("    mov rbp, rsp\n");
     printf("    sub rsp, 208\n");
 
-    // 先頭の式から順にコード生成
-    for (int i = 0; code[i]; i++) {
-        gen(code[i], 1);
-
-        // 式の評価結果としてスタックに一つの値が残っている
-        // はずなので、スタックが溢れないようにポップしておく
-        printf("    pop rax\n");
-    }
+    gen(program(), 1);
 
     // エピローグ
     // 最後の式の結果がRAXに残っているのでそれが返り値になる
