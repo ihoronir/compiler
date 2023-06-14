@@ -67,7 +67,7 @@ Node new_node_const(int val) {
 
 Node new_node_local_var(int offset) {
     Node node = checkd_malloc(sizeof(*node));
-    node->kind = ND_CONST;
+    node->kind = ND_LOCAL_VAR;
     node->offset = offset;
     return node;
 }
@@ -85,11 +85,12 @@ Node new_node_block(Vec children) {
     return node;
 }
 
-Node new_node_func(char *name, Vec children) {
+Node new_node_func(char *name, int size, Vec children) {
     Node node = checkd_malloc(sizeof(*node));
     node->kind = ND_FUNC;
     node->children = children;
     node->name = name;
+    node->size = size;
     return node;
 }
 

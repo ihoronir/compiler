@@ -88,7 +88,35 @@ typedef struct node {
     int offset;  // kind が ND_LOCAL_VAR または ND_ARG の場合、そのオフセット
     int val;     // kind が ND_CONST の場合、その数値
     char *name;  // kind が ND_FUNC の場合、関数名
+    int size;    // kind が ND_FUNC の場合、サイズ
 } *Node;
+
+// ネームスペースの型
+typedef struct name_space {
+    Vec items;
+    struct name_space *parent;
+    int offset;  // ネームスペースに次に入る LocalVar のオフセット
+    int size;  // ネームスペースおよびその子孫のネームスペースの、最大 offset
+} *NameSpace;
+
+// アイテムの種類
+typedef enum {
+    IT_FUNC,
+    IT_LOCAL_VAR,
+} ItemKind;
+
+// アイテムの型
+typedef struct item {
+    ItemKind kind;  // アイテムの種類
+    char *name;     // アイテムの名前
+    int offset;     // kind が LocalVar の場合、そのオフセット
+} *Item;
+
+// name_space.c
+NameSpace new_namespace(NameSpace parent);
+void name_space_def_func(NameSpace name_space, char *name);
+void name_space_def_local_var(NameSpace name_space, char *name);
+int name_space_get_local_var_offset(NameSpace name_space, char *name);
 
 // main.c
 void error(char *msg);
@@ -118,15 +146,11 @@ Node new_node_local_var(int offset);
 Node new_node_null();
 Node node_get_child(Node node, int index);
 Node new_node_block(Vec childs);
-Node new_node_func(char *name, Vec children);
+Node new_node_func(char *name, int size, Vec children);
 Node new_node_program(Vec children);
 
 // parse.c
 Node program();
-
-// local_vars.c
-void init_local_vars_buf();
-int get_offset(char *str);
 
 // gen.c
 void gen(Node node, int indent);

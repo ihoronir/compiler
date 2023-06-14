@@ -1,6 +1,3 @@
-#include <stdarg.h>
-#include <stdio.h>
-
 #include "compiler.h"
 
 static void print_with_indent(int indent, char *fmt, ...) {
@@ -41,10 +38,11 @@ void gen(Node node, int indent) {
             print_with_indent(indent + 1, "%s:", node->name);
             print_with_indent(indent + 1, "push rbp");
             print_with_indent(indent + 1, "mov rbp, rsp");
-            print_with_indent(indent + 1, "sub rsp, 208");
+            print_with_indent(indent + 1, "sub rsp, %d", node->size);
 
             gen(node_get_child(node, 0), indent + 1);
 
+            print_with_indent(indent + 1, "pop rax");
             print_with_indent(indent + 1, "mov rsp, rbp");
             print_with_indent(indent + 1, "pop rbp");
             print_with_indent(indent + 1, "ret");
@@ -97,6 +95,11 @@ void gen(Node node, int indent) {
             print_with_indent(indent + 1, "pop rax");
             print_with_indent(indent + 1, "mov [rax], rdi");
             print_with_indent(indent + 1, "push rdi");
+            break;
+
+        case ND_NULL:
+            print_with_indent(indent, "# ND_NULL");
+            print_with_indent(indent + 1, "push rax");
             break;
 
         case ND_ADD:
