@@ -12,6 +12,13 @@ typedef struct vec {
     int capacity;
 } *Vec;
 
+// char の可変長バッファ
+typedef struct string {
+    char *buf;
+    int len;
+    int capacity;
+} *String;
+
 // トークンの種類
 typedef enum {
     TK_RETURN,       // "return"
@@ -22,6 +29,7 @@ typedef enum {
     TK_INT,          // "10" などの整数
     TK_IDENT,        // "a" などの識別子
     TK_SEMICOLON,    // ";"
+    TK_COMMA,        // ","
     TK_EQUAL,        // "="
     TK_LEFT_PAREN,   // "("
     TK_RIGHT_PAREN,  // ")"
@@ -53,40 +61,33 @@ typedef struct token {
 typedef enum {
     ND_CONST,          // 定数
     ND_LOCAL_VAR,      // ローカル変数
-    ND_MUL,            // childs[0] * childs[1]
-    ND_DIV,            // childs[0] / childs[1]
-    ND_ADD,            // childs[0] + childs[1]
-    ND_SUB,            // childs[0] - childs[1]
-    ND_LESS,           // childs[0] < childs[1]
-    ND_LESS_OR_EQUAL,  // childs[0] <= childs[1]
-    ND_EQUAL,          // childs[0] == childs[1]
-    ND_NOT_EQUAL,      // childs[0] != childs[1]
-    ND_ASSIGN,         // childs[0] = childs[1]
-    ND_RETURN,         // return childs[0]
-    ND_IF,             // if (childs[0]) childs[1]
-    ND_IF_ELSE,        // if (childs[0]) childs[1] else childs[2]
-    ND_WHILE,          // while (childs[0]) childs[1]
-    ND_FOR,            // for (childs[0], childs[1], childs[2]) childs[3]
+    ND_MUL,            // [0] * [1]
+    ND_DIV,            // [0] / [1]
+    ND_ADD,            // [0] + [1]
+    ND_SUB,            // [0] - [1]
+    ND_LESS,           // [0] < [1]
+    ND_LESS_OR_EQUAL,  // [0] <= [1]
+    ND_EQUAL,          // [0] == [1]
+    ND_NOT_EQUAL,      // [0] != [1]
+    ND_ASSIGN,         // [0] = [1]
+    ND_RETURN,         // return [0]
+    ND_IF,             // if ([0]) [1]
+    ND_IF_ELSE,        // if ([0]) [1] else [2]
+    ND_WHILE,          // while ([0]) [1]
+    ND_FOR,            // for ([0], [1], [2]) [3]
     ND_NULL,           // 空文
-    ND_BLOCK,          // ブロック
+    ND_BLOCK,          // ブロック { [0] [1] [2] ...}
+    ND_FUNC,           // 関数 func_name(... , [3], [2], [1]) { [0] }
+    ND_PROGRAM         // プログラム全体 [0] [1] [2] ...
 } NodeKind;
 
 // AST のノードの型
 typedef struct node {
     NodeKind kind;  // ノードの種類
-    Vec childs;     // 子要素
-    int offset;     // kind が ND_LOCAL_VAR の場合、そのオフセット
-    int val;        // kind が ND_CONST の場合、その数値
-                    /*
-                    struct Node *lhs;      // 左辺
-                    struct Node *rhs;      // 右辺
-                    struct Node *init;     // for の初期化式
-                    struct Node *cond;     // if, while, for の条件式
-                    struct Node *update;   // for の更新式
-                    struct Node *then;     // if, while, for で条件式が成立したとき
-                    struct Node *alt;      // if で条件式が不成立のとき
-                    struct Node *program;  // stmt のベクタ
-                    */
+    Vec children;   // 子要素
+    int offset;  // kind が ND_LOCAL_VAR または ND_ARG の場合、そのオフセット
+    int val;     // kind が ND_CONST の場合、その数値
+    char *name;  // kind が ND_FUNC の場合、関数名
 } *Node;
 
 // main.c
@@ -112,11 +113,13 @@ void tokenize(char *p);
 
 // node.c
 Node new_node(NodeKind nk, ...);
-Node new_node_block(Vec childs);
 Node new_node_const(int val);
 Node new_node_local_var(int offset);
 Node new_node_null();
 Node node_get_child(Node node, int index);
+Node new_node_block(Vec childs);
+Node new_node_func(char *name, Vec children);
+Node new_node_program(Vec children);
 
 // parse.c
 Node program();
@@ -132,3 +135,8 @@ void gen(Node node, int indent);
 Vec new_vec_with_capacity(int capacity);
 Vec new_vec();
 void vec_push(Vec vec, void *ptr);
+
+// string.c
+String new_string_with_capacity(int capacity);
+String new_string();
+void string_push(String string, char c);

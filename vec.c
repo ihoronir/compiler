@@ -15,7 +15,6 @@ Vec new_vec() { return new_vec_with_capacity(VEC_DEFAULT_CAPACITY); }
 void vec_push(Vec vec, void *ptr) {
     if (vec->len == vec->capacity) {
         vec->capacity *= 2;
-        fprintf(stderr, "faaaaaaaaaaaaaaaa: %d\n", vec->capacity);
         vec->buf = checkd_realloc(vec->buf, vec->capacity);
     }
     vec->buf[vec->len++] = ptr;

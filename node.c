@@ -1,8 +1,6 @@
-#include <stdio.h>
-
 #include "compiler.h"
 
-static int childs_num(NodeKind tk) {
+static int children_num(NodeKind tk) {
     switch (tk) {
         // 終端記号
         case ND_CONST:
@@ -32,36 +30,31 @@ static int childs_num(NodeKind tk) {
 
         // 非終端記号（子の個数が可変）
         case ND_BLOCK:
+        case ND_FUNC:
+        case ND_PROGRAM:
             return -1;
     }
 }
 
 Node new_node(NodeKind nk, ...) {
-    int n = childs_num(nk);
+    int n = children_num(nk);
     if (n <= 0) error("new_node: nk が不正です");
 
     Node node = checkd_malloc(sizeof(*node));
     node->kind = nk;
-    node->childs = new_vec_with_capacity(n);
+    node->children = new_vec_with_capacity(n);
 
     va_list ap;
     va_start(ap, nk);
 
     Node node_child;
     while ((node_child = va_arg(ap, Node)) != NULL) {
-        vec_push(node->childs, node_child);
+        vec_push(node->children, node_child);
     }
 
     va_end(ap);
 
-    if (node->childs->len != n) error("new_node: 引数の数が不正です");
-    return node;
-}
-
-Node new_node_block(Vec childs) {
-    Node node = checkd_malloc(sizeof(*node));
-    node->kind = ND_BLOCK;
-    node->childs = childs;
+    if (node->children->len != n) error("new_node: 引数の数が不正です");
     return node;
 }
 
@@ -85,7 +78,29 @@ Node new_node_null() {
     return node;
 }
 
+Node new_node_block(Vec children) {
+    Node node = checkd_malloc(sizeof(*node));
+    node->kind = ND_BLOCK;
+    node->children = children;
+    return node;
+}
+
+Node new_node_func(char *name, Vec children) {
+    Node node = checkd_malloc(sizeof(*node));
+    node->kind = ND_FUNC;
+    node->children = children;
+    node->name = name;
+    return node;
+}
+
+Node new_node_program(Vec children) {
+    Node node = checkd_malloc(sizeof(*node));
+    node->kind = ND_PROGRAM;
+    node->children = children;
+    return node;
+}
+
 Node node_get_child(Node node, int index) {
-    if (index >= node->childs->len) error("node_get_child: 範囲外アクセス");
-    return node->childs->buf[index];
+    if (index >= node->children->len) error("node_get_child: 範囲外アクセス");
+    return node->children->buf[index];
 }

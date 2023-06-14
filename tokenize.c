@@ -5,22 +5,18 @@ static int is_alnum(char c) {
            ('0' <= c && c <= '9') || (c == '_');
 }
 
-#define IDENTIFIER_MAX_LEN 63
-
 static char *identifier(char **p) {
-    static char buf[IDENTIFIER_MAX_LEN];
+    String string = new_string();
 
-    int i;
-    for (i = 0; i < IDENTIFIER_MAX_LEN; i++) {
-        if (!isalnum(**p)) break;
-        buf[i] = *((*p)++);
+    while (isalnum(**p)) {
+        string_push(string, *((*p)++));
     }
 
-    if (i == 0) return NULL;
+    if (string->len == 0) return NULL;
 
-    char *str = checkd_malloc(sizeof(char) * (i + 1));
-    strncpy(str, buf, i + 1);
-    return str;
+    string_push(string, '\0');
+
+    return string->buf;
 }
 
 // 入力文字列pをトークナイズ
@@ -154,6 +150,10 @@ void tokenize(char *p) {
                 continue;
             case ';':
                 tokens_push(TK_SEMICOLON, line, row);
+                p++;
+                continue;
+            case ',':
+                tokens_push(TK_COMMA, line, row);
                 p++;
                 continue;
         }

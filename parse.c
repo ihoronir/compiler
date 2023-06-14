@@ -1,7 +1,5 @@
 #include "compiler.h"
 
-// Node *code[100];
-
 static int consume(TokenKind tk) {
     Token token = tokens_peek();
     if (token->kind != tk) return 0;
@@ -21,6 +19,14 @@ static void expect(TokenKind tk) {
     if (token->kind != tk)
         error_at(token->line, token->row, "期待される字句ではありません");
     tokens_next();
+}
+
+static char *expect_ident() {
+    Token token = tokens_peek();
+    if (token->kind != TK_IDENT)
+        error_at(token->line, token->row, "識別子ではありません");
+    tokens_next();
+    return token->str;
 }
 
 static int expect_int() {
@@ -154,34 +160,30 @@ static Node assign() {
 // expr = assign
 static Node expr() { return assign(); }
 
-// stmt =
-//      | ";"
-//      | "{" block "}"
+// stmt = ";"
+//      | "{" stmt* "}"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "while" "(" expr ")" stmt
 //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //      | "return" expr ";"
 //      | expr ";"
 static Node stmt() {
-    // 空文
     // ";"
     if (consume(TK_SEMICOLON)) {
         return new_node_null();
     }
 
-    // ブロック
     // "{" stmt* "}"
     if (consume(TK_LEFT_BRACE)) {
-        Vec childs = new_vec();
+        Vec children = new_vec();
 
         while (!consume(TK_RIGHT_BRACE)) {
-            vec_push(childs, stmt());
+            vec_push(children, stmt());
         }
 
-        return new_node_block(childs);
+        return new_node_block(children);
     }
 
-    // if または if else
     // "if" "(" expr ")" stmt ("else" stmt)?
     if (consume(TK_IF)) {
         expect(TK_LEFT_PAREN);
@@ -197,7 +199,6 @@ static Node stmt() {
         }
     }
 
-    // while
     // "while" "(" expr ")" stmt
     if (consume(TK_WHILE)) {
         expect(TK_LEFT_PAREN);
@@ -207,7 +208,6 @@ static Node stmt() {
         return new_node(ND_WHILE, cond, stmt(), NULL);
     }
 
-    // for
     // "for" "(" expr? ";" expr? ";" expr? ")" stmt
     if (consume(TK_FOR)) {
         expect(TK_LEFT_PAREN);
@@ -229,18 +229,16 @@ static Node stmt() {
         }
 
         Node update;
-        if (consume(TK_SEMICOLON)) {
+        if (consume(TK_RIGHT_PAREN)) {
             update = new_node_null();
         } else {
             update = expr();
-            expect(TK_SEMICOLON);
+            expect(TK_RIGHT_PAREN);
         }
 
-        expect(TK_RIGHT_PAREN);
         return new_node(ND_FOR, init, cond, update, stmt(), NULL);
     }
 
-    // return
     // "return" expr ";"
     if (consume(TK_RETURN)) {
         Node node = new_node(ND_RETURN, expr(), NULL);
@@ -248,20 +246,51 @@ static Node stmt() {
         return node;
     }
 
-    // 文
     // expr ";"
     Node node = expr();
     expect(TK_SEMICOLON);
     return node;
 }
 
-// program = block;
-Node program() {
-    Vec childs = new_vec();
+#define MAX_ARGS 6
 
-    while (!consume(TK_EOF)) {
-        vec_push(childs, stmt());
+// func = ident "(" (ident ",")* ")" "{" stmt* "}"
+Node func() {
+    char *name = expect_ident();
+
+    expect(TK_LEFT_PAREN);
+    Vec args = new_vec();
+    if (!consume(TK_RIGHT_PAREN)) {
+        do {
+            vec_push(args, expect_ident());
+        } while (consume(TK_COMMA));
+        expect(TK_RIGHT_PAREN);
     }
 
-    return new_node_block(childs);
+    Vec child0_children = new_vec();
+    expect(TK_LEFT_BRACE);
+    while (!consume(TK_RIGHT_BRACE)) {
+        vec_push(child0_children, stmt());
+    }
+
+    Vec children = new_vec();
+    vec_push(children, new_node_block(child0_children));
+
+    int i;
+    for (i = args->len - 1; i >= 0; i--) {
+        vec_push(children, new_node_local_var(get_offset(args->buf[i])));
+    }
+
+    return new_node_func(name, children);
+}
+
+// program = func*;
+Node program() {
+    Vec children = new_vec();
+
+    while (!consume(TK_EOF)) {
+        vec_push(children, func());
+    }
+
+    return new_node_program(children);
 }

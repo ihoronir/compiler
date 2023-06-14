@@ -22,7 +22,7 @@ Token new_token_int(int val, int line, int row) {
 }
 
 Token new_token_ident(char *str, int line, int row) {
-    Token token = new_token_uncheckd(TK_INT, line, row);
+    Token token = new_token_uncheckd(TK_IDENT, line, row);
     token->str = str;
     return token;
 }
