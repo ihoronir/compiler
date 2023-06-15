@@ -1,5 +1,7 @@
 #include "compiler.h"
 
+static int id = 0;
+
 static void print_with_indent(int indent, char *fmt, ...) {
     int i;
     for (i = 0; i < indent; i++) {
@@ -36,16 +38,82 @@ void gen(Node node, int indent) {
         case ND_FUNC:
             print_with_indent(indent, "# ND_FUNC");
             print_with_indent(indent + 1, "%s:", node->name);
-            print_with_indent(indent + 1, "push rbp");
-            print_with_indent(indent + 1, "mov rbp, rsp");
-            print_with_indent(indent + 1, "sub rsp, %d", node->size);
+            print_with_indent(indent + 2, "push rbp");
+            print_with_indent(indent + 2, "mov rbp, rsp");
+            print_with_indent(indent + 2, "sub rsp, %d", node->size);
 
-            gen(node_get_child(node, 0), indent + 1);
+            if (node->children->len > 7)
+                error("6 個以上の仮引数には対応していません");
 
+            for (i = 1; i < node->children->len; i++) {
+                gen_address(node_get_child(node, i), indent + 2);
+                print_with_indent(indent + 2, "pop rax");
+
+                switch (i) {
+                    case 1:
+                        print_with_indent(indent + 2, "mov [rax], rdi");
+                        break;
+                    case 2:
+                        print_with_indent(indent + 2, "mov [rax], rsi");
+                        break;
+                    case 3:
+                        print_with_indent(indent + 2, "mov [rax], rdx");
+                        break;
+                    case 4:
+                        print_with_indent(indent + 2, "mov [rax], rcx");
+                        break;
+                    case 5:
+                        print_with_indent(indent + 2, "mov [rax], r8");
+                        break;
+                    case 6:
+                        print_with_indent(indent + 2, "mov [rax], r9");
+                        break;
+                }
+            }
+
+            gen(node_get_child(node, 0), indent + 2);
+
+            print_with_indent(indent + 2, "pop rax");
+            print_with_indent(indent + 2, "mov rsp, rbp");
+            print_with_indent(indent + 2, "pop rbp");
+            print_with_indent(indent + 2, "ret");
+            break;
+
+        case ND_CALL:
+            print_with_indent(indent, "# ND_CALL");
+
+            if (node->children->len > 6)
+                error("6 個以上の実引数には対応していません");
+
+            for (i = 0; i < node->children->len; i++) {
+                gen(node_get_child(node, i), indent + 1);
+
+                switch (i) {
+                    case 0:
+                        print_with_indent(indent + 1, "pop rdi");
+                        break;
+                    case 1:
+                        print_with_indent(indent + 1, "pop rsi");
+                        break;
+                    case 2:
+                        print_with_indent(indent + 1, "pop rdx");
+                        break;
+                    case 3:
+                        print_with_indent(indent + 1, "pop rcx");
+                        break;
+                    case 4:
+                        print_with_indent(indent + 1, "pop r8");
+                        break;
+                    case 5:
+                        print_with_indent(indent + 1, "pop r9");
+                        break;
+                }
+            }
+
+            print_with_indent(indent + 1, "push %d", node->children->len);
             print_with_indent(indent + 1, "pop rax");
-            print_with_indent(indent + 1, "mov rsp, rbp");
-            print_with_indent(indent + 1, "pop rbp");
-            print_with_indent(indent + 1, "ret");
+            print_with_indent(indent + 1, "call %s", node->name);
+            print_with_indent(indent + 1, "push rax");
             break;
 
         case ND_BLOCK:
@@ -99,6 +167,22 @@ void gen(Node node, int indent) {
 
         case ND_NULL:
             print_with_indent(indent, "# ND_NULL");
+            print_with_indent(indent + 1, "push rax");
+            break;
+
+        case ND_IF:
+            print_with_indent(indent, "# ND_IF");
+
+            gen(node_get_child(node, 0), indent + 1);
+
+            print_with_indent(indent + 1, "pop rax");
+            print_with_indent(indent + 1, "cmp rax, 0");
+            print_with_indent(indent + 1, "je .Lend%08d", id);
+
+            gen(node_get_child(node, 1), indent + 1);
+
+            print_with_indent(indent + 1, "pop rax");
+            print_with_indent(indent + 1, ".Lend%08d:", id++);
             print_with_indent(indent + 1, "push rax");
             break;
 

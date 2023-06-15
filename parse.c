@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <string.h>
-
 #include "compiler.h"
 
 static int consume(TokenKind tk) {
@@ -59,7 +56,9 @@ static int expect_int() {
 
 static Node expr(NameSpace name_space);
 
-// primary = num | ident | "(" expr ")"
+// primary = num
+//         | ident ("(" ")")?
+//         | "(" expr ")"
 static Node primary(NameSpace name_space) {
     if (consume(/* ( */ TK_LEFT_PAREN)) {
         Node node = expr(name_space);
@@ -67,9 +66,28 @@ static Node primary(NameSpace name_space) {
         return node;
     }
 
-    char *str;
-    if ((str = consume_ident()) != NULL) {
-        int offset = name_space_get_local_var_offset(name_space, str);
+    char *name;
+    if ((name = consume_ident()) != NULL) {
+        if (consume(TK_LEFT_PAREN)) {
+            Vec params = new_vec();
+            if (!consume(TK_RIGHT_PAREN)) {
+                do {
+                    vec_push(params, expr(name_space));
+                } while (consume(TK_COMMA));
+                expect(TK_RIGHT_PAREN);
+            }
+
+            Vec children = new_vec();
+
+            int i;
+            for (i = params->len - 1; i >= 0; i--) {
+                vec_push(children, params->buf[i]);
+            }
+
+            return new_node_call(name, children);
+        }
+
+        int offset = name_space_get_local_var_offset(name_space, name);
         return new_node_local_var(offset);
     }
 
@@ -206,8 +224,9 @@ static Node stmt(NameSpace name_space) {
     if (consume(TK_LEFT_BRACE)) {
         Vec children = new_vec();
 
+        NameSpace block_name_space = new_name_space(name_space);
         while (!consume(TK_RIGHT_BRACE)) {
-            vec_push(children, stmt(new_namespace(name_space)));
+            vec_push(children, stmt(block_name_space));
         }
 
         return new_node_block(children);
@@ -290,7 +309,7 @@ Node func(NameSpace name_space) {
 
     char *name = expect_ident();
     name_space_def_func(name_space, name);
-    name_space = new_namespace(name_space);
+    NameSpace func_name_space = new_name_space(name_space);
 
     Vec arg_names = new_vec();
     expect(TK_LEFT_PAREN);
@@ -305,15 +324,15 @@ Node func(NameSpace name_space) {
     Vec args = new_vec();
     for (i = arg_names->len - 1; i >= 0; i--) {
         char *name = arg_names->buf[i];
-        name_space_def_local_var(name_space, name);
-        int offset = name_space_get_local_var_offset(name_space, name);
+        name_space_def_local_var(func_name_space, name);
+        int offset = name_space_get_local_var_offset(func_name_space, name);
         vec_push(args, new_node_local_var(offset));
     }
 
     Vec child0_children = new_vec();
     expect(TK_LEFT_BRACE);
     while (!consume(TK_RIGHT_BRACE)) {
-        vec_push(child0_children, stmt(name_space));
+        vec_push(child0_children, stmt(func_name_space));
     }
 
     Vec children = new_vec();
@@ -323,13 +342,13 @@ Node func(NameSpace name_space) {
         vec_push(children, args->buf[i]);
     }
 
-    return new_node_func(name, name_space->size, children);
+    return new_node_func(name, func_name_space->size, children);
 }
 
 // program = func*;
 Node program() {
     Vec children = new_vec();
-    NameSpace name_space = new_namespace(NULL);
+    NameSpace name_space = new_name_space(NULL);
 
     while (!consume(TK_EOF)) {
         vec_push(children, func(name_space));

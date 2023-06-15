@@ -77,8 +77,9 @@ typedef enum {
     ND_FOR,            // for ([0], [1], [2]) [3]
     ND_NULL,           // 空文
     ND_BLOCK,          // ブロック { [0] [1] [2] ...}
-    ND_FUNC,           // 関数 func_name(... , [3], [2], [1]) { [0] }
-    ND_PROGRAM         // プログラム全体 [0] [1] [2] ...
+    ND_FUNC,  // 関数定義 func_name(..., [6], [5], [4], [3], [2], [1]) { [0] }
+    ND_CALL,  // 関数呼び出し func_name(..., [5], [4], [3], [2], [1], [0])
+    ND_PROGRAM  // プログラム全体 [0] [1] [2] ...
 } NodeKind;
 
 // AST のノードの型
@@ -95,8 +96,8 @@ typedef struct node {
 typedef struct name_space {
     Vec items;
     struct name_space *parent;
-    int offset;  // ネームスペースに次に入る LocalVar のオフセット
-    int size;  // ネームスペースおよびその子孫のネームスペースの、最大 offset
+    int size;  // ネームスペースおよびその子孫のネームスペースに
+               // 含まれるローカル変数の、最大 offset
 } *NameSpace;
 
 // アイテムの種類
@@ -113,7 +114,7 @@ typedef struct item {
 } *Item;
 
 // name_space.c
-NameSpace new_namespace(NameSpace parent);
+NameSpace new_name_space(NameSpace parent);
 void name_space_def_func(NameSpace name_space, char *name);
 void name_space_def_local_var(NameSpace name_space, char *name);
 int name_space_get_local_var_offset(NameSpace name_space, char *name);
@@ -147,6 +148,7 @@ Node new_node_null();
 Node node_get_child(Node node, int index);
 Node new_node_block(Vec childs);
 Node new_node_func(char *name, int size, Vec children);
+Node new_node_call(char *name, Vec children);
 Node new_node_program(Vec children);
 
 // parse.c

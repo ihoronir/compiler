@@ -31,6 +31,7 @@ static int children_num(NodeKind tk) {
         // 非終端記号（子の個数が可変）
         case ND_BLOCK:
         case ND_FUNC:
+        case ND_CALL:
         case ND_PROGRAM:
             return -1;
     }
@@ -91,6 +92,14 @@ Node new_node_func(char *name, int size, Vec children) {
     node->children = children;
     node->name = name;
     node->size = size;
+    return node;
+}
+
+Node new_node_call(char *name, Vec children) {
+    Node node = checkd_malloc(sizeof(*node));
+    node->kind = ND_CALL;
+    node->children = children;
+    node->name = name;
     return node;
 }
 

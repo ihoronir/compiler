@@ -69,4 +69,85 @@ assert 12 'int main() {
     c;
 }'
 
+assert 3 'int main() {
+    int a;
+    a = 0;
+
+    int b;
+    b = 0;
+
+    int c;
+    c = 0;
+
+    if (a == 0) {
+        b = b + 3;
+    }
+
+    if (a != 0) {
+        c = c + 4;
+    }
+
+    return b + c;
+}'
+
+assert 8 'int main() {
+    int a;
+    a = 1;
+
+    int b;
+    b = 3;
+
+    if (a) {
+        int a;
+        a = 4;
+        b = b + a;
+    }
+
+    return b + a;
+}'
+
+assert 9 'int sub() {
+int a;
+a = 0;
+    return 9;
+}
+
+int main() {
+    return sub();
+}'
+
+assert 10 'int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    add(7, 3);
+}'
+
+assert 3 'int f(int x) {
+    if (x) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+int main() {
+    int a;
+    a = 0;
+    if (f(1)) a = a + 3;
+    if (f(0)) a = a + 4;
+    return a;
+}'
+
+assert 55 'int fibonacci(int n) {
+    if (n == 0) return 0;
+    if (n == 1) return 1;
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+int main() {
+    return fibonacci(10);
+}'
+
 echo OK
