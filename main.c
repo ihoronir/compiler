@@ -2,7 +2,7 @@
 
 void error(char *msg) {
     fprintf(stderr, "%s\n", msg);
-    exit(EXIT_SUCCESS);
+    exit(EXIT_FAILURE);
 }
 
 void error_at(int line, int row, char *msg) {
@@ -10,13 +10,13 @@ void error_at(int line, int row, char *msg) {
     exit(EXIT_FAILURE);
 }
 
-void *checkd_malloc(unsigned long len) {
+void *checked_malloc(unsigned long len) {
     void *ptr = malloc(len);
     if (ptr == NULL) error("malloc failed");
     return ptr;
 }
 
-void *checkd_realloc(void *ptr, unsigned long len) {
+void *checked_realloc(void *ptr, unsigned long len) {
     void *new_ptr = realloc(ptr, len);
     if (new_ptr == NULL) error("realloc failed");
     return new_ptr;

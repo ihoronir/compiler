@@ -26,7 +26,8 @@ typedef enum {
     TK_ELSE,         // "else"
     TK_WHILE,        // "while"
     TK_FOR,          // "for"
-    TK_INT,          // "10" などの整数
+    TK_INT,          // "int"
+    TK_CONST_INT,    // "10" などの整数
     TK_IDENT,        // "a" などの識別子
     TK_SEMICOLON,    // ";"
     TK_COMMA,        // ","
@@ -51,7 +52,7 @@ typedef enum {
 // トークン
 typedef struct token {
     TokenKind kind;  // トークンの種類
-    int val;         // kind が TK_INT の場合、その数値
+    int val_int;     // kind が TK_CONST_INT の場合、その数値
     char *str;       // kind が TK_IDENT の場合、その文字列
     int line;        // トークンの行
     int row;         // トークンの列
@@ -59,7 +60,7 @@ typedef struct token {
 
 // AST のノードの種類
 typedef enum {
-    ND_CONST,          // 定数
+    ND_CONST_INT,      // 定数
     ND_LOCAL_VAR,      // ローカル変数
     ND_MUL,            // [0] * [1]
     ND_DIV,            // [0] / [1]
@@ -82,57 +83,80 @@ typedef enum {
     ND_PROGRAM  // プログラム全体 [0] [1] [2] ...
 } NodeKind;
 
+typedef struct item *Item;
+
 // AST のノードの型
 typedef struct node {
     NodeKind kind;  // ノードの種類
     Vec children;   // 子要素
-    int offset;  // kind が ND_LOCAL_VAR または ND_ARG の場合、そのオフセット
-    int val;     // kind が ND_CONST の場合、その数値
-    char *name;  // kind が ND_FUNC の場合、関数名
-    int size;    // kind が ND_FUNC の場合、サイズ
+    // Token token;    // 対応するトークン
+    Item item;  // kind が ND_LOCAL_VAR, ND_CALL, ND_FUNC の場合、そのアイテム
+    int val_int;  // kind が ND_CONST_INT の場合、その数値
 } *Node;
 
-// ネームスペースの型
-typedef struct name_space {
-    Vec items;
-    struct name_space *parent;
-    int size;  // ネームスペースおよびその子孫のネームスペースに
-               // 含まれるローカル変数の、最大 offset
-} *NameSpace;
+// スコープの型
+typedef struct scope {
+    struct scope *parent;  // 親スコープ
+    Vec items;             // スコープに登録されているアイテム
+    Item func;  // ルートスコープでない場合、属する関数
+} *Scope;
+
+// 型の種類
+typedef enum { TY_INT, TY_FUNC, TY_PTR } TypeKind;
+
+// 型の型
+typedef struct type {
+    TypeKind kind;
+    struct type *ptr_to;
+} *Type;
 
 // アイテムの種類
 typedef enum {
     IT_FUNC,
+    IT_TYPEDEF,
+    IT_GLOBAL_VAR,
     IT_LOCAL_VAR,
 } ItemKind;
 
 // アイテムの型
-typedef struct item {
+struct item {
     ItemKind kind;  // アイテムの種類
-    char *name;     // アイテムの名前
-    int offset;     // kind が LocalVar の場合、そのオフセット
-} *Item;
+    Type type;  // kind が IT_LOCAL_VAR または IT_GLOBAL_VAR の場合、その型
+    char *name;  // アイテムの名前
+    int size;    // kind がIT_FUNC の場合、そのサイズ
+    int offset;  // kind が IT_LOCAL_VAR の場合、そのオフセット
+};
 
-// name_space.c
-NameSpace new_name_space(NameSpace parent);
-void name_space_def_func(NameSpace name_space, char *name);
-void name_space_def_local_var(NameSpace name_space, char *name);
-int name_space_get_local_var_offset(NameSpace name_space, char *name);
+// scope.c
+Scope new_scope_global();
+Scope new_scope_func(Scope parent, Item item);
+Scope new_scope(Scope parent);
+Item scope_get_item(ItemKind kind, Scope scope, char *name);
+Item scope_def_func(Scope scope, Type type, char *name);
+Item scope_def_local_var(Scope scope, Type type, char *name);
+
+// type.c
+Type new_type_int();
+Type new_type_func();
+
+// item.c
+Item new_item_local_var(Type type, char *name, int offset);
+Item new_item_func(Type type, char *name);
 
 // main.c
 void error(char *msg);
 void error_at(int line, int row, char *msg);
-void *checkd_malloc(unsigned long len);
-void *checkd_realloc(void *ptr, unsigned long len);
+void *checked_malloc(unsigned long len);
+void *checked_realloc(void *ptr, unsigned long len);
 
 // token.c
-Token new_token(TokenKind tk, int line, int row);
-Token new_token_int(int val, int line, int row);
+Token new_token(TokenKind kind, int line, int row);
+Token new_token_const_int(int val, int line, int row);
 Token new_token_ident(char *str, int line, int row);
 
 // tokens.c
-void tokens_push(TokenKind tk, int line, int row);
-void tokens_push_int(int val, int line, int row);
+void tokens_push(TokenKind kind, int line, int row);
+void tokens_push_const_int(int val, int line, int row);
 void tokens_push_ident(char *str, int line, int row);
 Token tokens_next();
 Token tokens_peek();
@@ -141,15 +165,16 @@ Token tokens_peek();
 void tokenize(char *p);
 
 // node.c
-Node new_node(NodeKind nk, ...);
-Node new_node_const(int val);
-Node new_node_local_var(int offset);
+Node new_node(NodeKind kind, ...);
+Node new_node_const_int(int val);
+Node new_node_local_var(Scope scope, char *name);
+Node new_node_local_var_with_def(Scope scope, Type type, char *name);
+Node new_node_func(Scope scope, Type type, char *name, Vec children);
 Node new_node_null();
-Node node_get_child(Node node, int index);
 Node new_node_block(Vec childs);
-Node new_node_func(char *name, int size, Vec children);
-Node new_node_call(char *name, Vec children);
+Node new_node_call(Scope scope, char *name, Vec children);
 Node new_node_program(Vec children);
+Node node_get_child(Node node, int index);
 
 // parse.c
 Node program();

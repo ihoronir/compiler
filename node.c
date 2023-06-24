@@ -1,9 +1,9 @@
 #include "compiler.h"
 
-static int children_num(NodeKind tk) {
-    switch (tk) {
+static int children_num(NodeKind kind) {
+    switch (kind) {
         // 終端記号
-        case ND_CONST:
+        case ND_CONST_INT:
         case ND_LOCAL_VAR:
         case ND_NULL:
             return 0;
@@ -37,16 +37,16 @@ static int children_num(NodeKind tk) {
     }
 }
 
-Node new_node(NodeKind nk, ...) {
-    int n = children_num(nk);
-    if (n <= 0) error("new_node: nk が不正です");
+Node new_node(NodeKind kind, ...) {
+    int n = children_num(kind);
+    if (n <= 0) error("new_node: kind が不正です");
 
-    Node node = checkd_malloc(sizeof(*node));
-    node->kind = nk;
+    Node node = checked_malloc(sizeof(*node));
+    node->kind = kind;
     node->children = new_vec_with_capacity(n);
 
     va_list ap;
-    va_start(ap, nk);
+    va_start(ap, kind);
 
     Node node_child;
     while ((node_child = va_arg(ap, Node)) != NULL) {
@@ -59,52 +59,58 @@ Node new_node(NodeKind nk, ...) {
     return node;
 }
 
-Node new_node_const(int val) {
-    Node node = checkd_malloc(sizeof(*node));
-    node->kind = ND_CONST;
-    node->val = val;
+Node new_node_const_int(int val_int) {
+    Node node = checked_malloc(sizeof(*node));
+    node->kind = ND_CONST_INT;
+    node->val_int = val_int;
     return node;
 }
 
-Node new_node_local_var(int offset) {
-    Node node = checkd_malloc(sizeof(*node));
+Node new_node_local_var(Scope scope, char *name) {
+    Node node = checked_malloc(sizeof(*node));
     node->kind = ND_LOCAL_VAR;
-    node->offset = offset;
+    node->item = scope_get_item(IT_LOCAL_VAR, scope, name);
+    return node;
+}
+
+Node new_node_local_var_with_def(Scope scope, Type type, char *name) {
+    Node node = checked_malloc(sizeof(*node));
+    node->kind = ND_LOCAL_VAR;
+    node->item = scope_def_local_var(scope, type, name);
+    return node;
+}
+
+Node new_node_func(Scope scope, Type type, char *name, Vec children) {
+    Node node = checked_malloc(sizeof(*node));
+    node->kind = ND_FUNC;
+    node->children = children;
+    node->item = scope_def_func(scope, type, name);
     return node;
 }
 
 Node new_node_null() {
-    Node node = checkd_malloc(sizeof(*node));
+    Node node = checked_malloc(sizeof(*node));
     node->kind = ND_NULL;
     return node;
 }
 
 Node new_node_block(Vec children) {
-    Node node = checkd_malloc(sizeof(*node));
+    Node node = checked_malloc(sizeof(*node));
     node->kind = ND_BLOCK;
     node->children = children;
     return node;
 }
 
-Node new_node_func(char *name, int size, Vec children) {
-    Node node = checkd_malloc(sizeof(*node));
-    node->kind = ND_FUNC;
-    node->children = children;
-    node->name = name;
-    node->size = size;
-    return node;
-}
-
-Node new_node_call(char *name, Vec children) {
-    Node node = checkd_malloc(sizeof(*node));
+Node new_node_call(Scope scope, char *name, Vec children) {
+    Node node = checked_malloc(sizeof(*node));
     node->kind = ND_CALL;
     node->children = children;
-    node->name = name;
+    node->item = scope_get_item(IT_FUNC, scope, name);
     return node;
 }
 
 Node new_node_program(Vec children) {
-    Node node = checkd_malloc(sizeof(*node));
+    Node node = checked_malloc(sizeof(*node));
     node->kind = ND_PROGRAM;
     node->children = children;
     return node;

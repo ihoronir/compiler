@@ -10,12 +10,12 @@ static void tokens_push_token(Token token) {
     vec_push(tokens, token);
 }
 
-void tokens_push(TokenKind tk, int line, int row) {
-    tokens_push_token(new_token(tk, line, row));
+void tokens_push(TokenKind kind, int line, int row) {
+    tokens_push_token(new_token(kind, line, row));
 }
 
-void tokens_push_int(int val, int line, int row) {
-    tokens_push_token(new_token_int(val, line, row));
+void tokens_push_const_int(int val, int line, int row) {
+    tokens_push_token(new_token_const_int(val, line, row));
 }
 
 void tokens_push_ident(char *str, int line, int row) {

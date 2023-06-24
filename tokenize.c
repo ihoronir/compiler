@@ -73,6 +73,12 @@ void tokenize(char *p) {
             continue;
         }
 
+        if (strncmp(p, "int", 3) == 0 && !is_alnum(p[3])) {
+            tokens_push(TK_INT, line, row);
+            p += 3;
+            continue;
+        }
+
         if (strncmp(p, "if", 2) == 0 && !is_alnum(p[2])) {
             tokens_push(TK_IF, line, row);
             p += 2;
@@ -159,7 +165,7 @@ void tokenize(char *p) {
         }
 
         if (isdigit(*p)) {
-            tokens_push_int(strtol(p, &p, 10), line, row);
+            tokens_push_const_int(strtol(p, &p, 10), line, row);
             continue;
         }
 
