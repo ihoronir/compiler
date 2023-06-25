@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "compiler.h"
 
 static int consume(TokenKind tk) {

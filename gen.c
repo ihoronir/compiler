@@ -1,6 +1,9 @@
 #include "compiler.h"
 
-static int id = 0;
+static int gen_id() {
+    static int id = 0;
+    return id++;
+}
 
 static void print_with_indent(int indent, char *fmt, ...) {
     for (int i = 0; i < indent; i++) {
@@ -22,6 +25,8 @@ static void gen_address(Node node, int indent) {
 }
 
 void gen(Node node, int indent) {
+    int id;
+
     switch (node->kind) {
         case ND_PROGRAM:
             print_with_indent(indent, "# ND_PROGRAM");
@@ -169,6 +174,8 @@ void gen(Node node, int indent) {
             break;
 
         case ND_IF:
+            id = gen_id();
+
             print_with_indent(indent, "# ND_IF");
 
             gen(node_get_child(node, 0), indent + 1);
@@ -180,8 +187,84 @@ void gen(Node node, int indent) {
             gen(node_get_child(node, 1), indent + 1);
 
             print_with_indent(indent + 1, "pop rax");
-            print_with_indent(indent + 1, ".Lend%08d:", id++);
+            print_with_indent(indent + 1, ".Lend%08d:", id);
             print_with_indent(indent + 1, "push rax");
+            break;
+
+        case ND_IF_ELSE:
+            id = gen_id();
+
+            print_with_indent(indent, "# ND_IF_ELSE");
+
+            gen(node_get_child(node, 0), indent + 1);
+
+            print_with_indent(indent + 1, "pop rax");
+            print_with_indent(indent + 1, "cmp rax, 0");
+            print_with_indent(indent + 1, "je .Lelse%08d", id);
+
+            gen(node_get_child(node, 1), indent + 1);
+
+            // print_with_indent(indent + 1, "pop rax");
+            print_with_indent(indent + 1, "jmp .Lend%08d", id);
+            print_with_indent(indent + 1, ".Lelse%08d:", id);
+
+            gen(node_get_child(node, 2), indent + 1);
+
+            // print_with_indent(indent + 1, "pop rax");
+            print_with_indent(indent + 1, ".Lend%08d:", id);
+            // print_with_indent(indent + 1, "push rax");
+
+            break;
+
+        case ND_WHILE:
+            id = gen_id();
+
+            print_with_indent(indent, "# ND_WHILE");
+
+            print_with_indent(indent + 1, ".Lbegin%08d:", id);
+
+            gen(node_get_child(node, 0), indent + 1);
+
+            print_with_indent(indent + 1, "pop rax");
+            print_with_indent(indent + 1, "cmp rax, 0");
+            print_with_indent(indent + 1, "je .Lend%08d", id);
+
+            gen(node_get_child(node, 1), indent + 1);
+
+            print_with_indent(indent + 1, "pop rax");
+            print_with_indent(indent + 1, "jmp .Lbegin%08d", id);
+            print_with_indent(indent + 1, ".Lend%08d:", id);
+            print_with_indent(indent + 1, "push rax");
+
+            break;
+
+        case ND_FOR:
+            id = gen_id();
+
+            print_with_indent(indent, "# ND_FOR");
+
+            gen(node_get_child(node, 0), indent + 1);
+
+            print_with_indent(indent + 1, "pop rax");
+            print_with_indent(indent + 1, ".Lbegin%08d:", id);
+
+            gen(node_get_child(node, 1), indent + 1);
+
+            print_with_indent(indent + 1, "pop rax");
+            print_with_indent(indent + 1, "cmp rax, 0");
+            print_with_indent(indent + 1, "je .Lend%08d", id);
+
+            gen(node_get_child(node, 3), indent + 1);
+
+            print_with_indent(indent + 1, "pop rax");
+
+            gen(node_get_child(node, 2), indent + 1);
+
+            print_with_indent(indent + 1, "pop rax");
+            print_with_indent(indent + 1, "jmp .Lbegin%08d", id);
+            print_with_indent(indent + 1, ".Lend%08d:", id);
+            print_with_indent(indent + 1, "push rax");
+
             break;
 
         case ND_ADD:

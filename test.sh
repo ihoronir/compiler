@@ -140,6 +140,39 @@ int main() {
     return a;
 }'
 
+assert 146 'int f(int a, int b) {
+    int n;
+    n = 0;
+    if (a == 1) {
+        n = n + 1;
+    } else if (a == 2) {
+        n = n + 3;
+    } else if (a == 3) {
+        n = n + 5;
+    } else {
+        n = n + 7;
+    }
+
+    int m;
+    m = 0;
+    if (b == 1) {
+        m = m + 10;
+    } else {
+        if (b == 2) {
+            m = m + 30;
+        } else if (b == 3) {
+            m = m + 50;
+        }
+    }
+    m = m + 10;
+
+    return n + m;
+}
+
+int main() {
+    return f(1, 1) + f(2, 2) + f(3, 3) + f(4, 4);
+}'
+
 assert 55 'int fibonacci(int n) {
     if (n == 0) return 0;
     if (n == 1) return 1;
@@ -148,6 +181,28 @@ assert 55 'int fibonacci(int n) {
 
 int main() {
     return fibonacci(10);
+}'
+
+assert 150 'int main() {
+    int i;
+    i = 50;
+    int sum;
+    sum = 0;
+    while (i) {
+        sum = sum + i;
+        i = i - 10;
+    }
+    return sum;
+}'
+
+assert 55 'int main() {
+    int i;
+    int sum;
+    sum = 0;
+    for (i = 0; i <= 10; i = i + 1) {
+        sum = sum + i;
+    }
+    return sum;
 }'
 
 echo OK

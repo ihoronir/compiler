@@ -15,12 +15,7 @@ Vec new_vec() { return new_vec_with_capacity(VEC_DEFAULT_CAPACITY); }
 void vec_push(Vec vec, void *ptr) {
     if (vec->len == vec->capacity) {
         vec->capacity *= 2;
-        vec->buf = checked_realloc(vec->buf, vec->capacity);
+        vec->buf = checked_realloc(vec->buf, sizeof(void *) * vec->capacity);
     }
     vec->buf[vec->len++] = ptr;
 }
-
-// void **vec_get(Vec vec, int index) {
-//     if (index >= vec->len) error("vec_get: 範囲外アクセス");
-//     return &vec->buf[index];
-// }

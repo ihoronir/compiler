@@ -1,12 +1,12 @@
 #include "compiler.h"
 
-#define TOKENS_INITIAL_CAPACITY 100
+#define TOKENS_INITIAL_CAPACITY 300
 
 static Vec tokens = NULL;
 static int pos = 0;
 
 static void tokens_push_token(Token token) {
-    if (tokens == NULL) tokens = new_vec();
+    if (tokens == NULL) tokens = new_vec_with_capacity(TOKENS_INITIAL_CAPACITY);
     vec_push(tokens, token);
 }
 
