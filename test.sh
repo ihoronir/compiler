@@ -48,8 +48,8 @@ assert 1 'int main(){-1+1>=-1;}'
 assert 1 'int main(){35==35;}'
 assert 0 'int main(){35==-35;}'
 
-assert 1 'int main(){{-12!=12;+24==24;}{-12!=12;+24==24;}}int su(){}'
-#assert 0 '+24!=+24;'
+assert 1 'int main(){+24!=-24;}'
+assert 0 'int main(){+24!=+24;}'
 
 assert 12 'int main() {
     int a;
@@ -107,8 +107,8 @@ assert 8 'int main() {
 }'
 
 assert 9 'int sub() {
-int a;
-a = 0;
+    int a;
+    a = 0;
     return 9;
 }
 

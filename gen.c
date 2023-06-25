@@ -43,33 +43,33 @@ void gen(Node node, int indent) {
             if (node->children->len > 7)
                 error("6 個以上の仮引数には対応していません");
 
-            for (int i = 1; i < node->children->len; i++) {
+            for (int i = 0; i < node->children->len - 1; i++) {
                 gen_address(node_get_child(node, i), indent + 2);
                 print_with_indent(indent + 2, "pop rax");
 
                 switch (i) {
-                    case 1:
+                    case 0:
                         print_with_indent(indent + 2, "mov [rax], rdi");
                         break;
-                    case 2:
+                    case 1:
                         print_with_indent(indent + 2, "mov [rax], rsi");
                         break;
-                    case 3:
+                    case 2:
                         print_with_indent(indent + 2, "mov [rax], rdx");
                         break;
-                    case 4:
+                    case 3:
                         print_with_indent(indent + 2, "mov [rax], rcx");
                         break;
-                    case 5:
+                    case 4:
                         print_with_indent(indent + 2, "mov [rax], r8");
                         break;
-                    case 6:
+                    case 5:
                         print_with_indent(indent + 2, "mov [rax], r9");
                         break;
                 }
             }
 
-            gen(node_get_child(node, 0), indent + 2);
+            gen(node_get_child(node, node->children->len - 1), indent + 2);
 
             print_with_indent(indent + 2, "pop rax");
             print_with_indent(indent + 2, "mov rsp, rbp");
@@ -83,7 +83,7 @@ void gen(Node node, int indent) {
             if (node->children->len > 6)
                 error("6 個以上の実引数には対応していません");
 
-            for (int i = 0; i < node->children->len; i++) {
+            for (int i = node->children->len - 1; i >= 0; i--) {
                 gen(node_get_child(node, i), indent + 1);
 
                 switch (i) {

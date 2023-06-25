@@ -75,11 +75,11 @@ typedef enum {
     ND_IF,             // if ([0]) [1]
     ND_IF_ELSE,        // if ([0]) [1] else [2]
     ND_WHILE,          // while ([0]) [1]
-    ND_FOR,            // for ([0], [1], [2]) [3]
+    ND_FOR,            // for ([0]; [1]; [2]) [3]
     ND_NULL,           // 空文
     ND_BLOCK,          // ブロック { [0] [1] [2] ...}
-    ND_FUNC,  // 関数定義 func_name(..., [6], [5], [4], [3], [2], [1]) { [0] }
-    ND_CALL,  // 関数呼び出し func_name(..., [5], [4], [3], [2], [1], [0])
+    ND_FUNC,  // 関数定義 func_name([0], [1], [2], [3], [4], ..., [n-1]) [n]
+    ND_CALL,  // 関数呼び出し func_name([0], [1], [2], [3], [4], ...)
     ND_PROGRAM  // プログラム全体 [0] [1] [2] ...
 } NodeKind;
 

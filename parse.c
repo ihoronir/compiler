@@ -52,18 +52,13 @@ static Node primary(Scope scope) {
     char *name;
     if ((name = consume_ident()) != NULL) {
         if (consume(TK_LEFT_PAREN)) {
-            Vec params = new_vec();
-            if (!consume(TK_RIGHT_PAREN)) {
-                do {
-                    vec_push(params, expr(scope));
-                } while (consume(TK_COMMA));
-                expect(TK_RIGHT_PAREN);
-            }
-
             Vec children = new_vec();
 
-            for (int i = params->len - 1; i >= 0; i--) {
-                vec_push(children, params->buf[i]);
+            if (!consume(TK_RIGHT_PAREN)) {
+                do {
+                    vec_push(children, expr(scope));
+                } while (consume(TK_COMMA));
+                expect(TK_RIGHT_PAREN);
             }
 
             return new_node_call(scope, name, children);
@@ -291,34 +286,23 @@ Node func(Scope scope) {
 
     Scope func_scope = new_scope_func(scope, node->item);
 
-    Vec arg_names = new_vec();
     expect(TK_LEFT_PAREN);
     if (!consume(TK_RIGHT_PAREN)) {
         do {
             expect(TK_INT);
-            vec_push(arg_names, expect_ident());
+            vec_push(children, new_node_local_var_with_def(
+                                   func_scope, new_type_int(), expect_ident()));
         } while (consume(TK_COMMA));
         expect(TK_RIGHT_PAREN);
     }
 
-    Vec args = new_vec();
-    for (int i = arg_names->len - 1; i >= 0; i--) {
-        char *name = arg_names->buf[i];
-        vec_push(args,
-                 new_node_local_var_with_def(func_scope, new_type_int(), name));
-    }
-
-    Vec child0_children = new_vec();
+    Vec func_block_children = new_vec();
     expect(TK_LEFT_BRACE);
     while (!consume(TK_RIGHT_BRACE)) {
-        vec_push(child0_children, stmt(func_scope));
+        vec_push(func_block_children, stmt(func_scope));
     }
 
-    vec_push(children, new_node_block(child0_children));
-
-    for (int i = 0; i < args->len; i++) {
-        vec_push(children, args->buf[i]);
-    }
+    vec_push(children, new_node_block(func_block_children));
 
     return node;
 }
