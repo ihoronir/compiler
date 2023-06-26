@@ -21,31 +21,26 @@ static char *identifier(char **p) {
 
 // 入力文字列pをトークナイズ
 void tokenize(char *p) {
+    char *head_of_line = p;
     int line = 1;
-    int row = 0;
+    int row;
 
     while (*p) {
         // 空白文字をスキップ
         switch (*p) {
             case '\n':
                 line++;
-                row = 0;
-                p++;
+                head_of_line = p++;
                 continue;
 
             case '\t':
-                row += 4;  // タブ幅は 4 と仮定
-                p++;
-                continue;
-
             case '\r':
             case ' ':
-                row++;
                 p++;
                 continue;
 
             default:
-                row++;
+                row = p - head_of_line;
                 break;
         }
 

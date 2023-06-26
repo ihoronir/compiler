@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include "compiler.h"
 
 static int consume(TokenKind tk) {
@@ -166,7 +164,7 @@ static Node equality(Scope scope) {
 static Node assign(Scope scope) {
     Node node = equality(scope);
 
-    if (consume(/* = */ TK_EQUAL)) {
+    if (consume(TK_EQUAL)) {
         node = new_node(ND_ASSIGN, node, assign(scope), NULL);
     }
 
