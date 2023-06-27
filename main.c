@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
     tokenize(user_input);
 
     // 解析木作成 -> コード生成
-    gen(program(), 0);
+    gen_program(program());
 
     return EXIT_SUCCESS;
 }

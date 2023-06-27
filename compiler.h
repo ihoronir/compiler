@@ -184,7 +184,7 @@ Node node_get_child(Node node, int index);
 Node program();
 
 // gen.c
-void gen(Node node, int indent);
+void gen_program(Node node);
 
 // vec.c
 Vec new_vec_with_capacity(int capacity);

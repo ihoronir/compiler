@@ -7,7 +7,7 @@ static int gen_id() {
 
 static void print(int indent, char *fmt, ...) {
     for (int i = 0; i < indent; i++) {
-        printf("    ");
+        printf(" ");
     }
     va_list ap;
     va_start(ap, fmt);
@@ -16,397 +16,429 @@ static void print(int indent, char *fmt, ...) {
     va_end(ap);
 }
 
-static void gen_address(Node node, int indent) {
+static void gen(Node node, int depth);
+
+static void gen_address(Node node, int depth) {
+    int depth_initial = depth;
+
     switch (node->kind) {
         case ND_LOCAL_VAR:
-            print(indent, "# gen_address: ND_LOCAL_VAR");
-            print(indent + 1, "mov rax, rbp");
-            print(indent + 1, "sub rax, %d", node->item->offset);
-            print(indent + 1, "push rax");
+            print(depth, "# gen_address: ND_LOCAL_VAR");
+            print(depth, "mov rax, rbp");
+            print(depth, "sub rax, %d", node->item->offset);
+            print(depth++, "push rax");
             break;
 
         case ND_DEREF:
-            print(indent, "# gen_address: ND_DEREF");
-
-            gen(node_get_child(node, 0), indent + 1);
+            print(depth, "# gen_address: ND_DEREF");
+            gen(node_get_child(node, 0), depth++);
             break;
 
         default:
             error("アドレスが計算できません");
     }
+
+    if (depth != depth_initial + 1) error("gen_address: unreachable");
 }
 
-void gen(Node node, int indent) {
+static void gen(Node node, int depth) {
+    int depth_initial = depth;
     int id;
 
     switch (node->kind) {
-        case ND_PROGRAM:
-            print(indent, "# ND_PROGRAM");
-            print(indent + 1, ".intel_syntax noprefix");
-            print(indent + 1, ".globl main");
-
-            for (int i = 0; i < node->children->len; i++) {
-                gen(node_get_child(node, i), indent + 1);
-            }
-            break;
-
-        case ND_FUNC:
-            print(indent, "# ND_FUNC");
-            print(indent + 1, "%s:", node->item->name);
-            print(indent + 2, "push rbp");
-            print(indent + 2, "mov rbp, rsp");
-            print(indent + 2, "sub rsp, %d", node->item->size);
-
-            if (node->children->len > 7)
-                error("6 個以上の仮引数には対応していません");
-
-            for (int i = 0; i < node->children->len - 1; i++) {
-                gen_address(node_get_child(node, i), indent + 2);
-                print(indent + 2, "pop rax");
-
-                switch (i) {
-                    case 0:
-                        print(indent + 2, "mov [rax], rdi");
-                        break;
-                    case 1:
-                        print(indent + 2, "mov [rax], rsi");
-                        break;
-                    case 2:
-                        print(indent + 2, "mov [rax], rdx");
-                        break;
-                    case 3:
-                        print(indent + 2, "mov [rax], rcx");
-                        break;
-                    case 4:
-                        print(indent + 2, "mov [rax], r8");
-                        break;
-                    case 5:
-                        print(indent + 2, "mov [rax], r9");
-                        break;
-                }
-            }
-
-            gen(node_get_child(node, node->children->len - 1), indent + 2);
-
-            print(indent + 2, "pop rax");
-            print(indent + 2, "mov rsp, rbp");
-            print(indent + 2, "pop rbp");
-            print(indent + 2, "ret");
-            break;
-
         case ND_CALL:
-            print(indent, "# ND_CALL");
+            print(depth, "# ND_CALL");
 
             if (node->children->len > 6)
                 error("6 個以上の実引数には対応していません");
 
             for (int i = node->children->len - 1; i >= 0; i--) {
-                gen(node_get_child(node, i), indent + 1);
+                gen(node_get_child(node, i), depth++);
 
                 switch (i) {
                     case 0:
-                        print(indent + 1, "pop rdi");
+                        print(depth--, "pop rdi");
                         break;
                     case 1:
-                        print(indent + 1, "pop rsi");
+                        print(depth--, "pop rsi");
                         break;
                     case 2:
-                        print(indent + 1, "pop rdx");
+                        print(depth--, "pop rdx");
                         break;
                     case 3:
-                        print(indent + 1, "pop rcx");
+                        print(depth--, "pop rcx");
                         break;
                     case 4:
-                        print(indent + 1, "pop r8");
+                        print(depth--, "pop r8");
                         break;
                     case 5:
-                        print(indent + 1, "pop r9");
+                        print(depth--, "pop r9");
                         break;
                 }
             }
 
-            print(indent + 1, "push %d", node->children->len);
-            print(indent + 1, "pop rax");
-            print(indent + 1, "call %s", node->item->name);
-            print(indent + 1, "push rax");
+            print(depth++, "push %d", node->children->len);
+            print(depth--, "pop rax");
+
+            if (depth % 2 == 1) {
+                print(depth++, "push rdi");
+                print(depth, "call %s", node->item->name);
+                print(depth--, "pop rdi");
+            } else {
+                print(depth, "call %s", node->item->name);
+            }
+            print(depth++, "push rax");
             break;
 
         case ND_BLOCK:
-            print(indent, "# ND_BLOCK");
+            print(depth, "# ND_BLOCK");
 
             for (int i = 0; i < node->children->len; i++) {
-                gen(node_get_child(node, i), indent + 1);
-                print(indent + 1, "pop rax");
+                gen(node_get_child(node, i), depth++);
+                print(depth--, "pop rax");
             }
-            print(indent + 1, "push rax");
+            print(depth++, "push rax");
             break;
 
         case ND_RETURN:
-            print(indent, "# ND_RETURN");
+            print(depth, "# ND_RETURN");
 
-            gen(node_get_child(node, 0), indent + 1);
+            gen(node_get_child(node, 0), depth++);
 
-            print(indent + 1, "pop rax");
-            print(indent + 1, "mov rsp, rbp");
-            print(indent + 1, "pop rbp");
-            print(indent + 1, "ret");
+            print(depth--, "pop rax");
+            print(depth, "mov rsp, rbp");
+            depth = 2;
+            print(depth--, "pop rbp");
+            print(depth, "ret");
             break;
 
         case ND_CONST_INT:
-            print(indent, "# ND_CONST_INT");
+            print(depth, "# ND_CONST_INT");
 
-            print(indent + 1, "push %d", node->val_int);
+            print(depth++, "push %d", node->val_int);
             break;
 
         case ND_LOCAL_VAR:
-            print(indent, "# ND_LOCAL_VAR");
+            print(depth, "# ND_LOCAL_VAR");
 
-            gen_address(node, indent + 1);
+            gen_address(node, depth++);
 
-            print(indent + 1, "pop rax");
-            print(indent + 1, "mov rax, [rax]");
-            print(indent + 1, "push rax");
+            print(depth--, "pop rax");
+            print(depth, "mov rax, [rax]");
+            print(depth++, "push rax");
             break;
 
         case ND_ASSIGN:
-            print(indent, "# ND_ASSIGN");
+            print(depth, "# ND_ASSIGN");
 
-            gen_address(node_get_child(node, 0), indent + 1);
-            gen(node_get_child(node, 1), indent + 1);
+            gen_address(node_get_child(node, 0), depth++);
+            gen(node_get_child(node, 1), depth++);
 
-            print(indent + 1, "pop rdi");
-            print(indent + 1, "pop rax");
-            print(indent + 1, "mov [rax], rdi");
-            print(indent + 1, "push rdi");
+            print(depth--, "pop rdi");
+            print(depth--, "pop rax");
+            print(depth, "mov [rax], rdi");
+            print(depth++, "push rdi");
             break;
 
         case ND_NULL:
-            print(indent, "# ND_NULL");
-            print(indent + 1, "push rax");
+            print(depth, "# ND_NULL");
+            print(depth++, "push rax");
             break;
 
         case ND_IF:
             id = gen_id();
 
-            print(indent, "# ND_IF");
+            print(depth, "# ND_IF");
 
-            gen(node_get_child(node, 0), indent + 1);
+            gen(node_get_child(node, 0), depth++);
 
-            print(indent + 1, "pop rax");
-            print(indent + 1, "cmp rax, 0");
-            print(indent + 1, "je .Lend%08d", id);
+            print(depth--, "pop rax");
+            print(depth, "cmp rax, 0");
+            print(depth, "je .Lend%08d", id);
 
-            gen(node_get_child(node, 1), indent + 1);
+            gen(node_get_child(node, 1), depth++);
 
-            print(indent + 1, "pop rax");
-            print(indent + 1, ".Lend%08d:", id);
-            print(indent + 1, "push rax");
+            print(depth--, "pop rax");
+            print(depth, ".Lend%08d:", id);
+            print(depth++, "push rax");
             break;
 
         case ND_IF_ELSE:
             id = gen_id();
 
-            print(indent, "# ND_IF_ELSE");
+            print(depth, "# ND_IF_ELSE");
 
-            gen(node_get_child(node, 0), indent + 1);
+            gen(node_get_child(node, 0), depth++);
 
-            print(indent + 1, "pop rax");
-            print(indent + 1, "cmp rax, 0");
-            print(indent + 1, "je .Lelse%08d", id);
+            print(depth--, "pop rax");
+            print(depth, "cmp rax, 0");
+            print(depth, "je .Lelse%08d", id);
 
-            gen(node_get_child(node, 1), indent + 1);
+            gen(node_get_child(node, 1), depth++);
 
-            // print(indent + 1, "pop rax");
-            print(indent + 1, "jmp .Lend%08d", id);
-            print(indent + 1, ".Lelse%08d:", id);
+            print(depth--, "pop rax");
+            print(depth, "jmp .Lend%08d", id);
+            print(depth, ".Lelse%08d:", id);
 
-            gen(node_get_child(node, 2), indent + 1);
+            gen(node_get_child(node, 2), depth++);
 
-            // print(indent + 1, "pop rax");
-            print(indent + 1, ".Lend%08d:", id);
-            // print(indent + 1, "push rax");
+            print(depth--, "pop rax");
+            print(depth, ".Lend%08d:", id);
+            print(depth++, "push rax");
 
             break;
 
         case ND_WHILE:
             id = gen_id();
 
-            print(indent, "# ND_WHILE");
+            print(depth, "# ND_WHILE");
 
-            print(indent + 1, ".Lbegin%08d:", id);
+            print(depth, ".Lbegin%08d:", id);
 
-            gen(node_get_child(node, 0), indent + 1);
+            gen(node_get_child(node, 0), depth++);
 
-            print(indent + 1, "pop rax");
-            print(indent + 1, "cmp rax, 0");
-            print(indent + 1, "je .Lend%08d", id);
+            print(depth--, "pop rax");
+            print(depth, "cmp rax, 0");
+            print(depth, "je .Lend%08d", id);
 
-            gen(node_get_child(node, 1), indent + 1);
+            gen(node_get_child(node, 1), depth++);
 
-            print(indent + 1, "pop rax");
-            print(indent + 1, "jmp .Lbegin%08d", id);
-            print(indent + 1, ".Lend%08d:", id);
-            print(indent + 1, "push rax");
+            print(depth--, "pop rax");
+            print(depth, "jmp .Lbegin%08d", id);
+            print(depth, ".Lend%08d:", id);
+            print(depth++, "push rax");
 
             break;
 
         case ND_FOR:
             id = gen_id();
 
-            print(indent, "# ND_FOR");
+            print(depth, "# ND_FOR");
 
-            gen(node_get_child(node, 0), indent + 1);
+            gen(node_get_child(node, 0), depth++);
 
-            print(indent + 1, "pop rax");
-            print(indent + 1, ".Lbegin%08d:", id);
+            print(depth--, "pop rax");
+            print(depth, ".Lbegin%08d:", id);
 
-            gen(node_get_child(node, 1), indent + 1);
+            gen(node_get_child(node, 1), depth++);
 
-            print(indent + 1, "pop rax");
-            print(indent + 1, "cmp rax, 0");
-            print(indent + 1, "je .Lend%08d", id);
+            print(depth--, "pop rax");
+            print(depth, "cmp rax, 0");
+            print(depth, "je .Lend%08d", id);
 
-            gen(node_get_child(node, 3), indent + 1);
+            gen(node_get_child(node, 3), depth++);
 
-            print(indent + 1, "pop rax");
+            print(depth--, "pop rax");
 
-            gen(node_get_child(node, 2), indent + 1);
+            gen(node_get_child(node, 2), depth++);
 
-            print(indent + 1, "pop rax");
-            print(indent + 1, "jmp .Lbegin%08d", id);
-            print(indent + 1, ".Lend%08d:", id);
-            print(indent + 1, "push rax");
+            print(depth--, "pop rax");
+            print(depth, "jmp .Lbegin%08d", id);
+            print(depth, ".Lend%08d:", id);
+            print(depth++, "push rax");
 
             break;
 
         case ND_ADDR:
-            print(indent, "# ND_ADDR");
+            print(depth, "# ND_ADDR");
 
-            gen_address(node_get_child(node, 0), indent + 1);
+            gen_address(node_get_child(node, 0), depth++);
 
             break;
 
         case ND_DEREF:
-            print(indent, "# ND_DEREF");
+            print(depth, "# ND_DEREF");
 
-            gen(node_get_child(node, 0), indent + 1);
+            gen(node_get_child(node, 0), depth++);
 
-            print(indent + 1, "pop rax");
-            print(indent + 1, "mov rax, [rax]");
-            print(indent + 1, "push rax");
+            print(depth--, "pop rax");
+            print(depth, "mov rax, [rax]");
+            print(depth++, "push rax");
             break;
 
         case ND_ADD:
-            print(indent, "# ND_ADD");
+            print(depth, "# ND_ADD");
 
-            gen(node_get_child(node, 0), indent + 1);
-            gen(node_get_child(node, 1), indent + 1);
+            gen(node_get_child(node, 0), depth++);
+            gen(node_get_child(node, 1), depth++);
 
-            print(indent + 1, "pop rdi");
-            print(indent + 1, "pop rax");
+            print(depth--, "pop rdi");
+            print(depth--, "pop rax");
 
-            print(indent + 1, "add rax, rdi");
-            print(indent + 1, "push rax");
+            print(depth, "add rax, rdi");
+            print(depth++, "push rax");
             break;
 
         case ND_SUB:
-            print(indent, "# ND_SUB");
+            print(depth, "# ND_SUB");
 
-            gen(node_get_child(node, 0), indent + 1);
-            gen(node_get_child(node, 1), indent + 1);
+            gen(node_get_child(node, 0), depth++);
+            gen(node_get_child(node, 1), depth++);
 
-            print(indent + 1, "pop rdi");
-            print(indent + 1, "pop rax");
+            print(depth--, "pop rdi");
+            print(depth--, "pop rax");
 
-            print(indent + 1, "sub rax, rdi");
-            print(indent + 1, "push rax");
+            print(depth, "sub rax, rdi");
+            print(depth++, "push rax");
             break;
 
         case ND_MUL:
-            print(indent, "# ND_MUL");
+            print(depth, "# ND_MUL");
 
-            gen(node_get_child(node, 0), indent + 1);
-            gen(node_get_child(node, 1), indent + 1);
+            gen(node_get_child(node, 0), depth++);
+            gen(node_get_child(node, 1), depth++);
 
-            print(indent + 1, "pop rdi");
-            print(indent + 1, "pop rax");
+            print(depth--, "pop rdi");
+            print(depth--, "pop rax");
 
-            print(indent + 1, "imul rax, rdi");
-            print(indent + 1, "push rax");
+            print(depth, "imul rax, rdi");
+            print(depth++, "push rax");
             break;
 
         case ND_DIV:
-            print(indent, "# ND_DIV");
+            print(depth, "# ND_DIV");
 
-            gen(node_get_child(node, 0), indent + 1);
-            gen(node_get_child(node, 1), indent + 1);
+            gen(node_get_child(node, 0), depth++);
+            gen(node_get_child(node, 1), depth++);
 
-            print(indent + 1, "pop rdi");
-            print(indent + 1, "pop rax");
+            print(depth--, "pop rdi");
+            print(depth--, "pop rax");
 
-            print(indent + 1, "cqo");
-            print(indent + 1, "idiv rdi");
-            print(indent + 1, "push rax");
+            print(depth, "cqo");
+            print(depth, "idiv rdi");
+            print(depth++, "push rax");
             break;
 
         case ND_EQUAL:
-            print(indent, "# ND_EQUAL");
+            print(depth, "# ND_EQUAL");
 
-            gen(node_get_child(node, 0), indent + 1);
-            gen(node_get_child(node, 1), indent + 1);
+            gen(node_get_child(node, 0), depth++);
+            gen(node_get_child(node, 1), depth++);
 
-            print(indent + 1, "pop rdi");
-            print(indent + 1, "pop rax");
+            print(depth--, "pop rdi");
+            print(depth--, "pop rax");
 
-            print(indent + 1, "cmp rax, rdi");
-            print(indent + 1, "sete al");
-            print(indent + 1, "movzb rax, al");
-            print(indent + 1, "push rax");
+            print(depth, "cmp rax, rdi");
+            print(depth, "sete al");
+            print(depth, "movzb rax, al");
+            print(depth++, "push rax");
             break;
 
         case ND_NOT_EQUAL:
-            print(indent, "# ND_NOT_EQUAL");
+            print(depth, "# ND_NOT_EQUAL");
 
-            gen(node_get_child(node, 0), indent + 1);
-            gen(node_get_child(node, 1), indent + 1);
+            gen(node_get_child(node, 0), depth++);
+            gen(node_get_child(node, 1), depth++);
 
-            print(indent + 1, "pop rdi");
-            print(indent + 1, "pop rax");
+            print(depth--, "pop rdi");
+            print(depth--, "pop rax");
 
-            print(indent + 1, "cmp rax, rdi");
-            print(indent + 1, "setne al");
-            print(indent + 1, "movzb rax, al");
-            print(indent + 1, "push rax");
+            print(depth, "cmp rax, rdi");
+            print(depth, "setne al");
+            print(depth, "movzb rax, al");
+            print(depth++, "push rax");
             break;
 
         case ND_LESS:
-            print(indent, "# ND_LESS");
+            print(depth, "# ND_LESS");
 
-            gen(node_get_child(node, 0), indent + 1);
-            gen(node_get_child(node, 1), indent + 1);
+            gen(node_get_child(node, 0), depth++);
+            gen(node_get_child(node, 1), depth++);
 
-            print(indent + 1, "pop rdi");
-            print(indent + 1, "pop rax");
+            print(depth--, "pop rdi");
+            print(depth--, "pop rax");
 
-            print(indent + 1, "cmp rax, rdi");
-            print(indent + 1, "setl al");
-            print(indent + 1, "movzb rax, al");
-            print(indent + 1, "push rax");
+            print(depth, "cmp rax, rdi");
+            print(depth, "setl al");
+            print(depth, "movzb rax, al");
+            print(depth++, "push rax");
             break;
 
         case ND_LESS_OR_EQUAL:
-            print(indent, "# ND_LESS_OR_EQUAL");
+            print(depth, "# ND_LESS_OR_EQUAL");
 
-            gen(node_get_child(node, 0), indent + 1);
-            gen(node_get_child(node, 1), indent + 1);
+            gen(node_get_child(node, 0), depth++);
+            gen(node_get_child(node, 1), depth++);
 
-            print(indent + 1, "pop rdi");
-            print(indent + 1, "pop rax");
+            print(depth--, "pop rdi");
+            print(depth--, "pop rax");
 
-            print(indent + 1, "cmp rax, rdi");
-            print(indent + 1, "setle al");
-            print(indent + 1, "movzb rax, al");
-            print(indent + 1, "push rax");
+            print(depth, "cmp rax, rdi");
+            print(depth, "setle al");
+            print(depth, "movzb rax, al");
+            print(depth++, "push rax");
             break;
+
+        default:
+            error("gen: unreachable");
+    }
+
+    if ((node->kind == ND_RETURN && depth != 1) ||
+        (node->kind != ND_RETURN && depth != depth_initial + 1)) {
+        error("gen: unreachable");
+    }
+}
+
+static void gen_func(Node node) {
+    if (node->kind != ND_FUNC) error("gen_func: unreachable");
+
+    int depth = 0;
+
+    print(depth++, "%s: # ND_FUNC", node->item->name);
+
+    print(depth++, "push rbp");
+
+    print(depth, "mov rbp, rsp");
+
+    print(depth, "sub rsp, %d", node->item->size);
+    depth += node->item->size / 8;
+
+    if (node->children->len > 7) error("6 個以上の仮引数には対応していません");
+
+    for (int i = 0; i < node->children->len - 1; i++) {
+        gen_address(node_get_child(node, i), depth++);
+
+        print(depth--, "pop rax");
+
+        switch (i) {
+            case 0:
+                print(depth, "mov [rax], rdi");
+                break;
+            case 1:
+                print(depth, "mov [rax], rsi");
+                break;
+            case 2:
+                print(depth, "mov [rax], rdx");
+                break;
+            case 3:
+                print(depth, "mov [rax], rcx");
+                break;
+            case 4:
+                print(depth, "mov [rax], r8");
+                break;
+            case 5:
+                print(depth, "mov [rax], r9");
+                break;
+        }
+    }
+
+    gen(node_get_child(node, node->children->len - 1), depth++);
+
+    print(depth--, "pop rax");
+    print(depth, "mov rsp, rbp");
+    depth = 2;
+    print(depth--, "pop rbp");
+    print(depth, "ret");
+}
+
+void gen_program(Node node) {
+    if (node->kind != ND_PROGRAM) error("gen_program: unreachable");
+
+    print(0, ".intel_syntax noprefix");
+    print(0, ".globl main");
+
+    for (int i = 0; i < node->children->len; i++) {
+        puts("");
+        gen_func(node_get_child(node, i));
     }
 }
