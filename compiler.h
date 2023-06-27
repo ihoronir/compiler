@@ -32,6 +32,7 @@ typedef enum {
     TK_SEMICOLON,    // ";"
     TK_COMMA,        // ","
     TK_EQUAL,        // "="
+    TK_AND,          // "&"
     TK_LEFT_PAREN,   // "("
     TK_RIGHT_PAREN,  // ")"
     TK_LEFT_BRACE,   // "{"
@@ -62,6 +63,8 @@ typedef struct token {
 typedef enum {
     ND_CONST_INT,      // 定数
     ND_LOCAL_VAR,      // ローカル変数
+    ND_DEREF,          // *[0]
+    ND_ADDR,           // &[0]
     ND_MUL,            // [0] * [1]
     ND_DIV,            // [0] / [1]
     ND_ADD,            // [0] + [1]
@@ -137,6 +140,7 @@ Item scope_def_local_var(Scope scope, Type type, char *name);
 
 // type.c
 Type new_type_int();
+Type new_type_ptr(Type ptr_to);
 Type new_type_func();
 
 // item.c

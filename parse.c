@@ -81,6 +81,12 @@ static Node unary(Scope scope) {
         } else if (consume(TK_MINUS)) {
             return new_node(ND_SUB, new_node_const_int(0), primary(scope),
                             NULL);
+
+        } else if (consume(TK_ASTERISK)) {
+            return new_node(ND_DEREF, primary(scope), NULL);
+
+        } else if (consume(TK_AND)) {
+            return new_node(ND_ADDR, primary(scope), NULL);
         }
 
         return primary(scope);
@@ -175,6 +181,7 @@ static Node assign(Scope scope) {
 static Node expr(Scope scope) { return assign(scope); }
 
 // stmt = "int" ident ";"
+//      | "int" "*" ident ";"
 //      | ";"
 //      | "{" stmt* "}"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
@@ -186,7 +193,13 @@ static Node expr(Scope scope) { return assign(scope); }
 static Node stmt(Scope scope) {
     // "int" ident ";"
     if (consume(TK_INT)) {
-        scope_def_local_var(scope, new_type_int(), expect_ident());
+        if (consume(TK_ASTERISK)) {
+            scope_def_local_var(scope, new_type_ptr(new_type_int()),
+                                expect_ident());
+
+        } else {
+            scope_def_local_var(scope, new_type_int(), expect_ident());
+        }
         expect(TK_SEMICOLON);
         return new_node_null();
     }

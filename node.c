@@ -10,6 +10,8 @@ static int children_num(NodeKind kind) {
 
         // 非終端記号（子の個数が固定）
         case ND_RETURN:
+        case ND_ADDR:
+        case ND_DEREF:
             return 1;
         case ND_MUL:
         case ND_DIV:

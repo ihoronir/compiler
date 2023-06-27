@@ -17,11 +17,23 @@ static void print(int indent, char *fmt, ...) {
 }
 
 static void gen_address(Node node, int indent) {
-    if (node->kind != ND_LOCAL_VAR) error("代入の左辺値が変数ではありません");
-    print(indent, "# gen_address");
-    print(indent + 1, "mov rax, rbp");
-    print(indent + 1, "sub rax, %d", node->item->offset);
-    print(indent + 1, "push rax");
+    switch (node->kind) {
+        case ND_LOCAL_VAR:
+            print(indent, "# gen_address: ND_LOCAL_VAR");
+            print(indent + 1, "mov rax, rbp");
+            print(indent + 1, "sub rax, %d", node->item->offset);
+            print(indent + 1, "push rax");
+            break;
+
+        case ND_DEREF:
+            print(indent, "# gen_address: ND_DEREF");
+
+            gen(node_get_child(node, 0), indent + 1);
+            break;
+
+        default:
+            error("アドレスが計算できません");
+    }
 }
 
 void gen(Node node, int indent) {
@@ -265,6 +277,23 @@ void gen(Node node, int indent) {
             print(indent + 1, ".Lend%08d:", id);
             print(indent + 1, "push rax");
 
+            break;
+
+        case ND_ADDR:
+            print(indent, "# ND_ADDR");
+
+            gen_address(node_get_child(node, 0), indent + 1);
+
+            break;
+
+        case ND_DEREF:
+            print(indent, "# ND_DEREF");
+
+            gen(node_get_child(node, 0), indent + 1);
+
+            print(indent + 1, "pop rax");
+            print(indent + 1, "mov rax, [rax]");
+            print(indent + 1, "push rax");
             break;
 
         case ND_ADD:

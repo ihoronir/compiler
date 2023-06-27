@@ -157,6 +157,10 @@ void tokenize(char *p) {
                 tokens_push(TK_COMMA, line, row);
                 p++;
                 continue;
+            case '&':
+                tokens_push(TK_AND, line, row);
+                p++;
+                continue;
         }
 
         if (isdigit(*p)) {
