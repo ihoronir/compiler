@@ -252,6 +252,7 @@ static Node stmt(Scope scope) {
         Node init;
         if (consume(TK_SEMICOLON)) {
             init = new_node_null();
+
         } else {
             init = expr(scope);
             expect(TK_SEMICOLON);
@@ -260,6 +261,7 @@ static Node stmt(Scope scope) {
         Node cond;
         if (consume(TK_SEMICOLON)) {
             cond = new_node_null();
+
         } else {
             cond = expr(scope);
             expect(TK_SEMICOLON);
@@ -268,6 +270,7 @@ static Node stmt(Scope scope) {
         Node update;
         if (consume(TK_RIGHT_PAREN)) {
             update = new_node_null();
+
         } else {
             update = expr(scope);
             expect(TK_RIGHT_PAREN);

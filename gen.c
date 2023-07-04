@@ -84,9 +84,11 @@ static void gen(Node node, int depth) {
                 print(depth++, "push rdi");
                 print(depth, "call %s", node->item->name);
                 print(depth--, "pop rdi");
+
             } else {
                 print(depth, "call %s", node->item->name);
             }
+
             print(depth++, "push rax");
             break;
 

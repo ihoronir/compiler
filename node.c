@@ -37,6 +37,9 @@ static int children_num(NodeKind kind) {
         case ND_PROGRAM:
             return -1;
     }
+
+    error("children_num: unreacnable");
+    return 0;
 }
 
 Node new_node(NodeKind kind, ...) {

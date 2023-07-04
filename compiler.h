@@ -59,7 +59,7 @@ typedef struct token {
     int row;         // トークンの列
 } *Token;
 
-// AST のノードの種類
+// ノードの種類
 typedef enum {
     ND_CONST_INT,      // 定数
     ND_LOCAL_VAR,      // ローカル変数
@@ -88,7 +88,7 @@ typedef enum {
 
 typedef struct item *Item;
 
-// AST のノードの型
+// ノードの型
 typedef struct node {
     NodeKind kind;  // ノードの種類
     Vec children;   // 子要素
@@ -105,12 +105,13 @@ typedef struct scope {
 } *Scope;
 
 // 型の種類
-typedef enum { TY_INT, TY_FUNC, TY_PTR } TypeKind;
+typedef enum { TY_INT, TY_FUNC, TY_ARR, TY_PTR } TypeKind;
 
 // 型の型
 typedef struct type {
     TypeKind kind;
     struct type *ptr_to;
+    int arr_len;
 } *Type;
 
 // アイテムの種類
@@ -129,23 +130,6 @@ struct item {
     int size;    // kind がIT_FUNC の場合、そのサイズ
     int offset;  // kind が IT_LOCAL_VAR の場合、そのオフセット
 };
-
-// scope.c
-Scope new_scope_global();
-Scope new_scope_func(Scope parent, Item item);
-Scope new_scope(Scope parent);
-Item scope_get_item(ItemKind kind, Scope scope, char *name);
-Item scope_def_func(Scope scope, Type type, char *name);
-Item scope_def_local_var(Scope scope, Type type, char *name);
-
-// type.c
-Type new_type_int();
-Type new_type_ptr(Type ptr_to);
-Type new_type_func();
-
-// item.c
-Item new_item_local_var(Type type, char *name, int offset);
-Item new_item_func(Type type, char *name);
 
 // main.c
 void error(char *msg);
@@ -168,6 +152,23 @@ Token tokens_peek();
 // tokenize.c
 void tokenize(char *p);
 
+// type.c
+Type new_type_int();
+Type new_type_ptr(Type ptr_to);
+Type new_type_func();
+
+// scope.c
+Scope new_scope_global();
+Scope new_scope_func(Scope parent, Item item);
+Scope new_scope(Scope parent);
+Item scope_get_item(ItemKind kind, Scope scope, char *name);
+Item scope_def_func(Scope scope, Type type, char *name);
+Item scope_def_local_var(Scope scope, Type type, char *name);
+
+// item.c
+Item new_item_local_var(Type type, char *name, int offset);
+Item new_item_func(Type type, char *name);
+
 // node.c
 Node new_node(NodeKind kind, ...);
 Node new_node_const_int(int val);
@@ -182,6 +183,9 @@ Node node_get_child(Node node, int index);
 
 // parse.c
 Node program();
+
+// check.c
+void check(Node node);
 
 // gen.c
 void gen_program(Node node);
