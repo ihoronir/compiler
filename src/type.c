@@ -13,9 +13,10 @@ Type new_type_ptr(Type ptr_to) {
     return type;
 }
 
-Type new_type_func() {
+Type new_type_func(Type returning) {
     Type type = checked_malloc(sizeof(*type));
     type->kind = TY_FUNC;
+    type->returning = returning;
     return type;
 }
 

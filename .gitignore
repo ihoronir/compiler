@@ -1,8 +1,17 @@
 *~
 *.o
+*.s
+*.log
+
 tmp*
 a.out
-compiler
+
+/target/compiler
+/test/target/*
+!/test/target/.keep
+
 .cache/
 compile_commands.json
+.gdb_history
+peda-session-tmp.txt
 

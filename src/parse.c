@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "compiler.h"
 
 static int consume(TokenKind tk) {
@@ -83,10 +85,10 @@ static Node unary(Scope scope) {
                             NULL);
 
         } else if (consume(TK_ASTERISK)) {
-            return new_node(ND_DEREF, primary(scope), NULL);
+            return new_node(ND_DEREF, unary(scope), NULL);
 
         } else if (consume(TK_AND)) {
-            return new_node(ND_ADDR, primary(scope), NULL);
+            return new_node(ND_ADDR, unary(scope), NULL);
         }
 
         return primary(scope);
@@ -180,8 +182,8 @@ static Node assign(Scope scope) {
 // expr = assign
 static Node expr(Scope scope) { return assign(scope); }
 
-// stmt = "int" ident ";"
-//      | "int" "*" ident ";"
+// stmt = "int" ( "*" )* ident ";"
+//      | "int" ident ";"
 //      | ";"
 //      | "{" stmt* "}"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
@@ -193,12 +195,16 @@ static Node expr(Scope scope) { return assign(scope); }
 static Node stmt(Scope scope) {
     // "int" ident ";"
     if (consume(TK_INT)) {
-        if (consume(TK_ASTERISK)) {
-            scope_def_local_var(scope, new_type_ptr(new_type_int()),
-                                expect_ident());
+        Type type = new_type_int();
 
-        } else {
-            scope_def_local_var(scope, new_type_int(), expect_ident());
+        for (;;) {
+            if (consume(TK_ASTERISK)) {
+                type = new_type_ptr(type);
+
+            } else {
+                scope_def_local_var(scope, type, expect_ident());
+                break;
+            }
         }
         expect(TK_SEMICOLON);
         return new_node_null();
@@ -296,9 +302,20 @@ static Node stmt(Scope scope) {
 Node func(Scope scope) {
     expect(TK_INT);
 
-    char *name = expect_ident();
+    Type type = new_type_int();
     Vec children = new_vec();
-    Node node = new_node_func(scope, new_type_func(), name, children);
+    Node node;
+
+    for (;;) {
+        if (consume(TK_ASTERISK)) {
+            type = new_type_ptr(type);
+
+        } else {
+            node = new_node_func(scope, new_type_func(type), expect_ident(),
+                                 children);
+            break;
+        }
+    }
 
     Scope func_scope = new_scope_func(scope, node->item);
 
@@ -306,8 +323,23 @@ Node func(Scope scope) {
     if (!consume(TK_RIGHT_PAREN)) {
         do {
             expect(TK_INT);
-            vec_push(children, new_node_local_var_with_def(
-                                   func_scope, new_type_int(), expect_ident()));
+
+            Node node;
+            Type type = new_type_int();
+
+            for (;;) {
+                if (consume(TK_ASTERISK)) {
+                    type = new_type_ptr(type);
+
+                } else {
+                    node = new_node_local_var_with_def(func_scope, type,
+                                                       expect_ident());
+                    break;
+                }
+            }
+
+            vec_push(children, node);
+
         } while (consume(TK_COMMA));
         expect(TK_RIGHT_PAREN);
     }

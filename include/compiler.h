@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -111,6 +112,7 @@ typedef enum { TY_INT, TY_FUNC, TY_ARR, TY_PTR } TypeKind;
 typedef struct type {
     TypeKind kind;
     struct type *ptr_to;
+    struct type *returning;
     int arr_len;
 } *Type;
 
@@ -132,7 +134,7 @@ struct item {
 };
 
 // main.c
-void error(char *msg);
+void error(char *fmt, ...);
 void error_at(int line, int row, char *msg);
 void *checked_malloc(unsigned long len);
 void *checked_realloc(void *ptr, unsigned long len);
@@ -155,7 +157,7 @@ void tokenize(char *p);
 // type.c
 Type new_type_int();
 Type new_type_ptr(Type ptr_to);
-Type new_type_func();
+Type new_type_func(Type returning);
 
 // scope.c
 Scope new_scope_global();
@@ -188,7 +190,7 @@ Node program();
 void check(Node node);
 
 // gen.c
-void gen_program(Node node);
+void gen_program(Node node, FILE *fp);
 
 // vec.c
 Vec new_vec_with_capacity(int capacity);

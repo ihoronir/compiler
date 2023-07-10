@@ -5,14 +5,16 @@ static int gen_id() {
     return id++;
 }
 
+static FILE *out;
+
 static void print(int indent, char *fmt, ...) {
     for (int i = 0; i < indent; i++) {
-        printf(" ");
+        fprintf(out, " ");
     }
     va_list ap;
     va_start(ap, fmt);
-    vprintf(fmt, ap);
-    putchar('\n');
+    vfprintf(out, fmt, ap);
+    fputc('\n', out);
     va_end(ap);
 }
 
@@ -433,14 +435,15 @@ static void gen_func(Node node) {
     print(depth, "ret");
 }
 
-void gen_program(Node node) {
+void gen_program(Node node, FILE *out_fp) {
+    out = out_fp;
     if (node->kind != ND_PROGRAM) error("gen_program: unreachable");
 
     print(0, ".intel_syntax noprefix");
     print(0, ".globl main");
 
     for (int i = 0; i < node->children->len; i++) {
-        puts("");
+        fputc('\n', out);
         gen_func(node_get_child(node, i));
     }
 }
