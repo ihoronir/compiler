@@ -68,7 +68,7 @@ for await (const entry of Deno.readDir('./test')) {
         })).spawn();
 
         if ((await exec.status).code != parseInt(expected)) {
-            redirectToFile(exec.stderr, linkLog);
+            redirectToFile(exec.stderr, execLog);
             return status.execErr;
         }
 
