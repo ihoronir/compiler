@@ -25,5 +25,6 @@ test: $(TARGET)
 clean:
 	rm -f $(TARGET) $(OBJDIR)/*.o
 	rm -f ./test/asm/*.s ./test/target/* ./test/log/*.log
+	make clean -C ./test/lib
 
 .PHONY: test clean
