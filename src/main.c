@@ -3,8 +3,8 @@
 void error(char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    vprintf(fmt, ap);
-    putchar('\n');
+    vfprintf(stderr, fmt, ap);
+    fputc('\n', stderr);
     va_end(ap);
     exit(EXIT_FAILURE);
 }
