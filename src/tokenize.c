@@ -8,7 +8,7 @@ static int is_alnum(char c) {
 static char *identifier(char **p) {
     String string = new_string();
 
-    while (isalnum(**p)) {
+    while (is_alnum(**p)) {
         string_push(string, *((*p)++));
     }
 
