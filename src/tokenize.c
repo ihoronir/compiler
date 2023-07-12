@@ -40,7 +40,7 @@ void tokenize(char *p) {
                 continue;
 
             default:
-                row = p - head_of_line;
+                row = p - head_of_line + 1;
                 break;
         }
 
