@@ -27,10 +27,11 @@ const results = [];
 for await (const entry of Deno.readDir('./test')) {
     if (!entry.isFile) continue;
 
-    const info = entry.name.match(/([0-9]*)_([0-9]*).c$/);
+    const info = entry.name.match(/(.*)_([0-9]*).c$/);
     if (info  == null) continue;
 
     const [name, no, expected] = info;
+    console.log(info);
 
     const run = async function() {
         const compiler = './target/compiler';
