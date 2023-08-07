@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include "compiler.h"
 
 static int consume(TokenKind tk) {
@@ -39,16 +37,16 @@ static int expect_const_int() {
     return token->val_int;
 }
 
-static Node expr(Scope scope);
+static UntypedNode expr(Scope scope);
 
 // primary = num
 //         | ident ("(" ")")?
 //         | "(" expr ")"
-static Node primary(Scope scope) {
+static UntypedNode primary(Scope scope) {
     if (consume(TK_LEFT_PAREN)) {
-        Node node = expr(scope);
+        UntypedNode untyped_node = expr(scope);
         expect(TK_RIGHT_PAREN);
-        return node;
+        return untyped_node;
     }
 
     char *name;
@@ -63,32 +61,32 @@ static Node primary(Scope scope) {
                 expect(TK_RIGHT_PAREN);
             }
 
-            return new_node_call(scope, name, children);
+            return new_untyped_node_call(scope, name, children);
         }
 
-        return new_node_local_var(scope, name);
+        return new_untyped_node_local_var(scope, name);
     }
 
     // そうでなければ数値のはず
-    Node node = new_node_const_int(expect_const_int());
-    return node;
+    UntypedNode untyped_node = new_untyped_node_const_int(expect_const_int());
+    return untyped_node;
 }
 
 // unary = ("+" | "-")? primary
-static Node unary(Scope scope) {
+static UntypedNode unary(Scope scope) {
     for (;;) {
         if (consume(TK_PLUS)) {
             return primary(scope);
 
         } else if (consume(TK_MINUS)) {
-            return new_node(ND_SUB, new_node_const_int(0), primary(scope),
-                            NULL);
+            return new_untyped_node(ND_SUB, new_untyped_node_const_int(0),
+                                    primary(scope), NULL);
 
         } else if (consume(TK_ASTERISK)) {
-            return new_node(ND_DEREF, unary(scope), NULL);
+            return new_untyped_node(ND_DEREF, unary(scope), NULL);
 
         } else if (consume(TK_AND)) {
-            return new_node(ND_ADDR, unary(scope), NULL);
+            return new_untyped_node(ND_ADDR, unary(scope), NULL);
         }
 
         return primary(scope);
@@ -96,91 +94,102 @@ static Node unary(Scope scope) {
 }
 
 // mul = unary ("*" unary | "/" unary)*
-static Node mul(Scope scope) {
-    Node node = unary(scope);
+static UntypedNode mul(Scope scope) {
+    UntypedNode untyped_node = unary(scope);
 
     for (;;) {
         if (consume(TK_ASTERISK)) {
-            node = new_node(ND_MUL, node, unary(scope), NULL);
+            untyped_node =
+                new_untyped_node(ND_MUL, untyped_node, unary(scope), NULL);
 
         } else if (consume(TK_SLASH)) {
-            node = new_node(ND_DIV, node, unary(scope), NULL);
+            untyped_node =
+                new_untyped_node(ND_DIV, untyped_node, unary(scope), NULL);
 
         } else {
-            return node;
+            return untyped_node;
         }
     }
 }
 
 // add = mul ("+" mul | "-" mul)*
-static Node add(Scope scope) {
-    Node node = mul(scope);
+static UntypedNode add(Scope scope) {
+    UntypedNode untyped_node = mul(scope);
 
     for (;;) {
         if (consume(TK_PLUS)) {
-            node = new_node(ND_ADD, node, mul(scope), NULL);
+            untyped_node =
+                new_untyped_node(ND_ADD, untyped_node, mul(scope), NULL);
 
         } else if (consume(TK_MINUS)) {
-            node = new_node(ND_SUB, node, mul(scope), NULL);
+            untyped_node =
+                new_untyped_node(ND_SUB, untyped_node, mul(scope), NULL);
 
         } else {
-            return node;
+            return untyped_node;
         }
     }
 }
 
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
-static Node relational(Scope scope) {
-    Node node = add(scope);
+static UntypedNode relational(Scope scope) {
+    UntypedNode untyped_node = add(scope);
 
     for (;;) {
         if (consume(TK_LESS)) {
-            node = new_node(ND_LESS, node, add(scope), NULL);
+            untyped_node =
+                new_untyped_node(ND_LESS, untyped_node, add(scope), NULL);
 
         } else if (consume(TK_LESS_EQUAL)) {
-            node = new_node(ND_LESS_OR_EQUAL, node, add(scope), NULL);
+            untyped_node = new_untyped_node(ND_LESS_OR_EQUAL, untyped_node,
+                                            add(scope), NULL);
 
         } else if (consume(TK_MORE)) {
-            node = new_node(ND_LESS, add(scope), node, NULL);
+            untyped_node =
+                new_untyped_node(ND_LESS, add(scope), untyped_node, NULL);
 
         } else if (consume(TK_MORE_EQUAL)) {
-            node = new_node(ND_LESS_OR_EQUAL, add(scope), node, NULL);
+            untyped_node = new_untyped_node(ND_LESS_OR_EQUAL, add(scope),
+                                            untyped_node, NULL);
 
         } else {
-            return node;
+            return untyped_node;
         }
     }
 }
 
 // equality = relational ("==" relational | "!=" relational)*
-static Node equality(Scope scope) {
-    Node node = relational(scope);
+static UntypedNode equality(Scope scope) {
+    UntypedNode untyped_node = relational(scope);
 
     for (;;) {
         if (consume(TK_EQUAL_EQUAL)) {
-            node = new_node(ND_EQUAL, node, relational(scope), NULL);
+            untyped_node = new_untyped_node(ND_EQUAL, untyped_node,
+                                            relational(scope), NULL);
 
         } else if (consume(TK_EXCL_EQUAL)) {
-            node = new_node(ND_NOT_EQUAL, node, relational(scope), NULL);
+            untyped_node = new_untyped_node(ND_NOT_EQUAL, untyped_node,
+                                            relational(scope), NULL);
 
         } else {
-            return node;
+            return untyped_node;
         }
     }
 }
 // assign = equality ("=" assign)?
-static Node assign(Scope scope) {
-    Node node = equality(scope);
+static UntypedNode assign(Scope scope) {
+    UntypedNode untyped_node = equality(scope);
 
     if (consume(TK_EQUAL)) {
-        node = new_node(ND_ASSIGN, node, assign(scope), NULL);
+        untyped_node =
+            new_untyped_node(ND_ASSIGN, untyped_node, assign(scope), NULL);
     }
 
-    return node;
+    return untyped_node;
 }
 
 // expr = assign
-static Node expr(Scope scope) { return assign(scope); }
+static UntypedNode expr(Scope scope) { return assign(scope); }
 
 // stmt = "int" ( "*" )* ident ";"
 //      | "int" ident ";"
@@ -192,7 +201,7 @@ static Node expr(Scope scope) { return assign(scope); }
 //      | "return" expr ";"
 //      | "int" ident ";"
 //      | expr ";"
-static Node stmt(Scope scope) {
+static UntypedNode stmt(Scope scope) {
     // "int" ident ";"
     if (consume(TK_INT)) {
         Type type = new_type_int();
@@ -207,12 +216,12 @@ static Node stmt(Scope scope) {
             }
         }
         expect(TK_SEMICOLON);
-        return new_node_null();
+        return new_untyped_node_null();
     }
 
     // ";"
     if (consume(TK_SEMICOLON)) {
-        return new_node_null();
+        return new_untyped_node_null();
     }
 
     // "{" stmt* "}"
@@ -224,107 +233,108 @@ static Node stmt(Scope scope) {
             vec_push(children, stmt(block_scope));
         }
 
-        return new_node_block(children);
+        return new_untyped_node_block(children);
     }
 
     // "if" "(" expr ")" stmt ("else" stmt)?
     if (consume(TK_IF)) {
         expect(TK_LEFT_PAREN);
-        Node cond = expr(scope);
+        UntypedNode cond = expr(scope);
         expect(TK_RIGHT_PAREN);
-        Node then = stmt(scope);
+        UntypedNode then = stmt(scope);
 
         if (consume(TK_ELSE)) {
-            return new_node(ND_IF_ELSE, cond, then, stmt(scope), NULL);
+            return new_untyped_node(ND_IF_ELSE, cond, then, stmt(scope), NULL);
 
         } else {
-            return new_node(ND_IF, cond, then, NULL);
+            return new_untyped_node(ND_IF, cond, then, NULL);
         }
     }
 
     // "while" "(" expr ")" stmt
     if (consume(TK_WHILE)) {
         expect(TK_LEFT_PAREN);
-        Node cond = expr(scope);
+        UntypedNode cond = expr(scope);
         expect(TK_RIGHT_PAREN);
 
-        return new_node(ND_WHILE, cond, stmt(scope), NULL);
+        return new_untyped_node(ND_WHILE, cond, stmt(scope), NULL);
     }
 
     // "for" "(" expr? ";" expr? ";" expr? ")" stmt
     if (consume(TK_FOR)) {
         expect(TK_LEFT_PAREN);
 
-        Node init;
+        UntypedNode init;
         if (consume(TK_SEMICOLON)) {
-            init = new_node_null();
+            init = new_untyped_node_null();
 
         } else {
             init = expr(scope);
             expect(TK_SEMICOLON);
         }
 
-        Node cond;
+        UntypedNode cond;
         if (consume(TK_SEMICOLON)) {
-            cond = new_node_null();
+            cond = new_untyped_node_null();
 
         } else {
             cond = expr(scope);
             expect(TK_SEMICOLON);
         }
 
-        Node update;
+        UntypedNode update;
         if (consume(TK_RIGHT_PAREN)) {
-            update = new_node_null();
+            update = new_untyped_node_null();
 
         } else {
             update = expr(scope);
             expect(TK_RIGHT_PAREN);
         }
 
-        return new_node(ND_FOR, init, cond, update, stmt(scope), NULL);
+        return new_untyped_node(ND_FOR, init, cond, update, stmt(scope), NULL);
     }
 
     // "return" expr ";"
     if (consume(TK_RETURN)) {
-        Node node = new_node(ND_RETURN, expr(scope), NULL);
+        UntypedNode untyped_node =
+            new_untyped_node(ND_RETURN, expr(scope), NULL);
         expect(TK_SEMICOLON);
-        return node;
+        return untyped_node;
     }
 
     // expr ";"
-    Node node = expr(scope);
+    UntypedNode untyped_node = expr(scope);
     expect(TK_SEMICOLON);
-    return node;
+    return untyped_node;
 }
 
 // func = "int" ident "(" ("int" ident ",")* ")" "{" stmt* "}"
-Node func(Scope scope) {
+UntypedNode func(Scope scope) {
     expect(TK_INT);
 
     Type type = new_type_int();
     Vec children = new_vec();
-    Node node;
+    UntypedNode untyped_node;
 
     for (;;) {
         if (consume(TK_ASTERISK)) {
             type = new_type_ptr(type);
 
         } else {
-            node = new_node_func(scope, new_type_func(type), expect_ident(),
-                                 children);
+            untyped_node = new_untyped_node_func(scope, new_type_func(type),
+                                                 expect_ident(), children);
             break;
         }
     }
 
-    Scope func_scope = new_scope_func(scope, node->item);
+    Scope func_scope = new_scope_func(scope, untyped_node->item);
 
     expect(TK_LEFT_PAREN);
     if (!consume(TK_RIGHT_PAREN)) {
         do {
             expect(TK_INT);
 
-            Node node;
+            UntypedNode untyped_node;
             Type type = new_type_int();
 
             for (;;) {
@@ -332,37 +342,42 @@ Node func(Scope scope) {
                     type = new_type_ptr(type);
 
                 } else {
-                    node = new_node_local_var_with_def(func_scope, type,
-                                                       expect_ident());
+                    untyped_node = new_untyped_node_local_var_with_def(
+                        func_scope, type, expect_ident());
                     break;
                 }
             }
 
-            vec_push(children, node);
+            vec_push(children, untyped_node);
 
         } while (consume(TK_COMMA));
         expect(TK_RIGHT_PAREN);
     }
 
-    Vec func_block_children = new_vec();
-    expect(TK_LEFT_BRACE);
-    while (!consume(TK_RIGHT_BRACE)) {
-        vec_push(func_block_children, stmt(func_scope));
+    if (consume(TK_LEFT_BRACE)) {
+        Vec func_block_children = new_vec();
+        while (!consume(TK_RIGHT_BRACE)) {
+            vec_push(func_block_children, stmt(func_scope));
+        }
+        vec_push(children, new_untyped_node_block(func_block_children));
+
+        return untyped_node;
+
+    } else {
+        expect(TK_SEMICOLON);
+        return NULL;
     }
-
-    vec_push(children, new_node_block(func_block_children));
-
-    return node;
 }
 
 // program = func*;
-Node program() {
+UntypedNode program() {
     Vec children = new_vec();
     Scope scope = new_scope_global();
 
     while (!consume(TK_EOF)) {
-        vec_push(children, func(scope));
+        UntypedNode fn = func(scope);
+        if (fn != NULL) vec_push(children, fn);
     }
 
-    return new_node_program(children);
+    return new_untyped_node_program(children);
 }

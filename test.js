@@ -27,10 +27,10 @@ const results = [];
 for await (const entry of Deno.readDir('./test')) {
     if (!entry.isFile) continue;
 
-    const info = entry.name.match(/(.*)_([0-9]*).c$/);
-    if (info  == null) continue;
+    const info = entry.name.match(/(.*)_([0-9]*)(_withlib)?.c$/);
+    if (info == null) continue;
 
-    const [name, no, expected] = info;
+    const [name, no, expected, withlib] = info;
 
     const run = async function() {
         const compiler = './target/compiler';
@@ -53,8 +53,17 @@ for await (const entry of Deno.readDir('./test')) {
         } 
 
         // リンク
+        let linkargs;
+        if (withlib) {
+            linkargs = ['-o', target, asm, "./test/lib/lib.s", "-no-pie", "-Wno-unused-command-line-argument"]
+
+        } else {
+            linkargs = ['-o', target, asm]
+        }
+
         const link = await (new Deno.Command('/bin/gcc', {
-            args: ['-o', target, asm], stderr: 'piped'
+            args: linkargs,
+            stderr: 'piped'
         })).spawn();
 
         if (!(await link.status).success) {

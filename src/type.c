@@ -1,5 +1,16 @@
 #include "compiler.h"
 
+int type_size(Type type) {
+    switch (type->kind) {
+        case TY_INT:
+            return 4;
+        case TY_PTR:
+            return 8;
+        default:
+            error("unimplemented");
+    }
+}
+
 Type new_type_int() {
     Type type = checked_malloc(sizeof(*type));
     type->kind = TY_INT;

@@ -1,0 +1,1 @@
+int add8(); int main(){ return add8(-1,-2,3,-4,5,6,-7,8); }

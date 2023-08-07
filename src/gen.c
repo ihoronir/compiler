@@ -18,9 +18,9 @@ static void print(int indent, char *fmt, ...) {
     va_end(ap);
 }
 
-static void gen(Node node, int depth);
+static void gen(UntypedNode node, int depth);
 
-static void gen_address(Node node, int depth) {
+static void gen_address(UntypedNode node, int depth) {
     int depth_initial = depth;
 
     switch (node->kind) {
@@ -33,7 +33,7 @@ static void gen_address(Node node, int depth) {
 
         case ND_DEREF:
             print(depth, "# gen_address: ND_DEREF");
-            gen(node_get_child(node, 0), depth++);
+            gen(untyped_node_get_child(node, 0), depth++);
             break;
 
         default:
@@ -43,9 +43,8 @@ static void gen_address(Node node, int depth) {
     if (depth != depth_initial + 1) error("gen_address: unreachable");
 }
 
-static void gen(Node node, int depth) {
+static void gen(UntypedNode node, int depth) {
     int depth_initial = depth;
-    int id;
 
     switch (node->kind) {
         case ND_CALL:
@@ -55,7 +54,7 @@ static void gen(Node node, int depth) {
                 error("6 個以上の実引数には対応していません");
 
             for (int i = node->children->len - 1; i >= 0; i--) {
-                gen(node_get_child(node, i), depth++);
+                gen(untyped_node_get_child(node, i), depth++);
 
                 switch (i) {
                     case 0:
@@ -83,9 +82,9 @@ static void gen(Node node, int depth) {
             print(depth--, "pop rax");
 
             if (depth % 2 == 1) {
-                print(depth++, "push rdi");
+                print(depth++, "add rsp, 8");
                 print(depth, "call %s", node->item->name);
-                print(depth--, "pop rdi");
+                print(depth--, "sub rsp, 8");
 
             } else {
                 print(depth, "call %s", node->item->name);
@@ -98,7 +97,7 @@ static void gen(Node node, int depth) {
             print(depth, "# ND_BLOCK");
 
             for (int i = 0; i < node->children->len; i++) {
-                gen(node_get_child(node, i), depth++);
+                gen(untyped_node_get_child(node, i), depth++);
                 print(depth--, "pop rax");
             }
             print(depth++, "push rax");
@@ -107,7 +106,7 @@ static void gen(Node node, int depth) {
         case ND_RETURN:
             print(depth, "# ND_RETURN");
 
-            gen(node_get_child(node, 0), depth++);
+            gen(untyped_node_get_child(node, 0), depth++);
 
             print(depth--, "pop rax");
             print(depth, "mov rsp, rbp");
@@ -135,11 +134,12 @@ static void gen(Node node, int depth) {
         case ND_ASSIGN:
             print(depth, "# ND_ASSIGN");
 
-            gen_address(node_get_child(node, 0), depth++);
-            gen(node_get_child(node, 1), depth++);
+            gen_address(untyped_node_get_child(node, 0), depth++);
+            gen(untyped_node_get_child(node, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
+            // print(depth, "QWORD PTR mov [rax], rdi");
             print(depth, "mov [rax], rdi");
             print(depth++, "push rdi");
             break;
@@ -149,135 +149,135 @@ static void gen(Node node, int depth) {
             print(depth++, "push rax");
             break;
 
-        case ND_IF:
-            id = gen_id();
+        case ND_IF: {
+            int id = gen_id();
 
             print(depth, "# ND_IF");
 
-            gen(node_get_child(node, 0), depth++);
+            gen(untyped_node_get_child(node, 0), depth++);
 
             print(depth--, "pop rax");
             print(depth, "cmp rax, 0");
             print(depth, "je .Lend%08d", id);
 
-            gen(node_get_child(node, 1), depth++);
+            gen(untyped_node_get_child(node, 1), depth++);
 
             print(depth--, "pop rax");
             print(depth, ".Lend%08d:", id);
             print(depth++, "push rax");
-            break;
+        } break;
 
-        case ND_IF_ELSE:
-            id = gen_id();
+        case ND_IF_ELSE: {
+            int id = gen_id();
 
             print(depth, "# ND_IF_ELSE");
 
-            gen(node_get_child(node, 0), depth++);
+            gen(untyped_node_get_child(node, 0), depth++);
 
             print(depth--, "pop rax");
             print(depth, "cmp rax, 0");
             print(depth, "je .Lelse%08d", id);
 
-            gen(node_get_child(node, 1), depth++);
+            gen(untyped_node_get_child(node, 1), depth++);
 
             print(depth--, "pop rax");
             print(depth, "jmp .Lend%08d", id);
             print(depth, ".Lelse%08d:", id);
 
-            gen(node_get_child(node, 2), depth++);
+            gen(untyped_node_get_child(node, 2), depth++);
 
             print(depth--, "pop rax");
             print(depth, ".Lend%08d:", id);
             print(depth++, "push rax");
 
-            break;
+        } break;
 
-        case ND_WHILE:
-            id = gen_id();
+        case ND_WHILE: {
+            int id = gen_id();
 
             print(depth, "# ND_WHILE");
 
             print(depth, ".Lbegin%08d:", id);
 
-            gen(node_get_child(node, 0), depth++);
+            gen(untyped_node_get_child(node, 0), depth++);
 
             print(depth--, "pop rax");
             print(depth, "cmp rax, 0");
             print(depth, "je .Lend%08d", id);
 
-            gen(node_get_child(node, 1), depth++);
+            gen(untyped_node_get_child(node, 1), depth++);
 
             print(depth--, "pop rax");
             print(depth, "jmp .Lbegin%08d", id);
             print(depth, ".Lend%08d:", id);
             print(depth++, "push rax");
 
-            break;
+        } break;
 
-        case ND_FOR:
-            id = gen_id();
+        case ND_FOR: {
+            int id = gen_id();
 
             print(depth, "# ND_FOR");
 
-            gen(node_get_child(node, 0), depth++);
+            gen(untyped_node_get_child(node, 0), depth++);
 
             print(depth--, "pop rax");
             print(depth, ".Lbegin%08d:", id);
 
-            gen(node_get_child(node, 1), depth++);
+            gen(untyped_node_get_child(node, 1), depth++);
 
             print(depth--, "pop rax");
             print(depth, "cmp rax, 0");
             print(depth, "je .Lend%08d", id);
 
-            gen(node_get_child(node, 3), depth++);
+            gen(untyped_node_get_child(node, 3), depth++);
 
             print(depth--, "pop rax");
 
-            gen(node_get_child(node, 2), depth++);
+            gen(untyped_node_get_child(node, 2), depth++);
 
             print(depth--, "pop rax");
             print(depth, "jmp .Lbegin%08d", id);
             print(depth, ".Lend%08d:", id);
             print(depth++, "push rax");
 
-            break;
+        } break;
 
         case ND_ADDR:
             print(depth, "# ND_ADDR");
 
-            gen_address(node_get_child(node, 0), depth++);
+            gen_address(untyped_node_get_child(node, 0), depth++);
 
             break;
 
         case ND_DEREF:
             print(depth, "# ND_DEREF");
 
-            gen(node_get_child(node, 0), depth++);
+            gen(untyped_node_get_child(node, 0), depth++);
 
             print(depth--, "pop rax");
             print(depth, "mov rax, [rax]");
             print(depth++, "push rax");
             break;
 
-        case ND_ADD:
+        case ND_ADD: {
             print(depth, "# ND_ADD");
 
-            gen(node_get_child(node, 0), depth++);
-            gen(node_get_child(node, 1), depth++);
+            gen(untyped_node_get_child(node, 0), depth++);
+            gen(untyped_node_get_child(node, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
 
             print(depth, "add rax, rdi");
             print(depth++, "push rax");
-            break;
+        } break;
 
         case ND_SUB:
             print(depth, "# ND_SUB");
 
-            gen(node_get_child(node, 0), depth++);
-            gen(node_get_child(node, 1), depth++);
+            gen(untyped_node_get_child(node, 0), depth++);
+            gen(untyped_node_get_child(node, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -289,8 +289,8 @@ static void gen(Node node, int depth) {
         case ND_MUL:
             print(depth, "# ND_MUL");
 
-            gen(node_get_child(node, 0), depth++);
-            gen(node_get_child(node, 1), depth++);
+            gen(untyped_node_get_child(node, 0), depth++);
+            gen(untyped_node_get_child(node, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -302,8 +302,8 @@ static void gen(Node node, int depth) {
         case ND_DIV:
             print(depth, "# ND_DIV");
 
-            gen(node_get_child(node, 0), depth++);
-            gen(node_get_child(node, 1), depth++);
+            gen(untyped_node_get_child(node, 0), depth++);
+            gen(untyped_node_get_child(node, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -316,8 +316,8 @@ static void gen(Node node, int depth) {
         case ND_EQUAL:
             print(depth, "# ND_EQUAL");
 
-            gen(node_get_child(node, 0), depth++);
-            gen(node_get_child(node, 1), depth++);
+            gen(untyped_node_get_child(node, 0), depth++);
+            gen(untyped_node_get_child(node, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -331,8 +331,8 @@ static void gen(Node node, int depth) {
         case ND_NOT_EQUAL:
             print(depth, "# ND_NOT_EQUAL");
 
-            gen(node_get_child(node, 0), depth++);
-            gen(node_get_child(node, 1), depth++);
+            gen(untyped_node_get_child(node, 0), depth++);
+            gen(untyped_node_get_child(node, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -346,8 +346,8 @@ static void gen(Node node, int depth) {
         case ND_LESS:
             print(depth, "# ND_LESS");
 
-            gen(node_get_child(node, 0), depth++);
-            gen(node_get_child(node, 1), depth++);
+            gen(untyped_node_get_child(node, 0), depth++);
+            gen(untyped_node_get_child(node, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -361,8 +361,8 @@ static void gen(Node node, int depth) {
         case ND_LESS_OR_EQUAL:
             print(depth, "# ND_LESS_OR_EQUAL");
 
-            gen(node_get_child(node, 0), depth++);
-            gen(node_get_child(node, 1), depth++);
+            gen(untyped_node_get_child(node, 0), depth++);
+            gen(untyped_node_get_child(node, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -383,7 +383,7 @@ static void gen(Node node, int depth) {
     }
 }
 
-static void gen_func(Node node) {
+static void gen_func(UntypedNode node) {
     if (node->kind != ND_FUNC) error("gen_func: unreachable");
 
     int depth = 0;
@@ -400,7 +400,7 @@ static void gen_func(Node node) {
     if (node->children->len > 7) error("6 個以上の仮引数には対応していません");
 
     for (int i = 0; i < node->children->len - 1; i++) {
-        gen_address(node_get_child(node, i), depth++);
+        gen_address(untyped_node_get_child(node, i), depth++);
 
         print(depth--, "pop rax");
 
@@ -426,7 +426,7 @@ static void gen_func(Node node) {
         }
     }
 
-    gen(node_get_child(node, node->children->len - 1), depth++);
+    gen(untyped_node_get_child(node, node->children->len - 1), depth++);
 
     print(depth--, "pop rax");
     print(depth, "mov rsp, rbp");
@@ -435,7 +435,7 @@ static void gen_func(Node node) {
     print(depth, "ret");
 }
 
-void gen_program(Node node, FILE *out_fp) {
+void gen_program(UntypedNode node, FILE *out_fp) {
     out = out_fp;
     if (node->kind != ND_PROGRAM) error("gen_program: unreachable");
 
@@ -444,6 +444,6 @@ void gen_program(Node node, FILE *out_fp) {
 
     for (int i = 0; i < node->children->len; i++) {
         fputc('\n', out);
-        gen_func(node_get_child(node, i));
+        gen_func(untyped_node_get_child(node, i));
     }
 }
