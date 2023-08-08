@@ -232,7 +232,10 @@ static Stmt parse_stmt(Scope scope) {
 
         Scope block_scope = new_scope(scope);
         while (!consume(TK_RIGHT_BRACE)) {
-            vec_push(children, parse_stmt(block_scope));
+            Stmt stmt_child = parse_stmt(block_scope);
+            if (stmt_child != NULL) {
+                vec_push(children, stmt_child);
+            }
         }
 
         return new_stmt_block(children);
@@ -261,7 +264,6 @@ static Stmt parse_stmt(Scope scope) {
 
         return new_stmt_while(cond, parse_stmt(scope));
     }
-    puts("flag");
 
     // "for" "(" expr? ";" expr? ";" expr? ")" stmt
     if (consume(TK_FOR)) {
