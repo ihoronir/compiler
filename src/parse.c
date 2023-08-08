@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "compiler.h"
 
 static int consume(TokenKind tk) {
@@ -16,8 +18,10 @@ static char *consume_ident() {
 
 static void expect(TokenKind tk) {
     Token token = tokens_peek();
-    if (token->kind != tk)
+    if (token->kind != tk) {
+        fprintf(stderr, "expected: %d, actuall: %d", tk, token->kind);
         error_at(token->line, token->row, "期待される字句ではありません");
+    }
     tokens_next();
 }
 
@@ -355,8 +359,12 @@ Stmt parse_func_definition(Scope scope) {
 
     if (consume(TK_LEFT_BRACE)) {
         Vec func_block_children = new_vec();
-        while (!consume(TK_RIGHT_BRACE)) {
-            vec_push(func_block_children, parse_stmt(func_scope));
+
+        Stmt func_block_child = parse_stmt(func_scope);
+        if (func_block_child != NULL) {
+            while (!consume(TK_RIGHT_BRACE)) {
+                vec_push(func_block_children, func_block_child);
+            }
         }
         vec_push(stmt_children, new_stmt_block(func_block_children));
 
