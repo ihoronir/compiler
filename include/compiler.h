@@ -62,43 +62,58 @@ typedef struct token {
     int row;         // トークンの列
 } *Token;
 
-// ノードの種類
 typedef enum {
-    ND_CONST_INT,      // 定数
-    ND_LOCAL_VAR,      // ローカル変数
-    ND_DEREF,          // *[0]
-    ND_ADDR,           // &[0]
-    ND_MUL,            // [0] * [1]
-    ND_DIV,            // [0] / [1]
-    ND_ADD,            // [0] + [1]
-    ND_SUB,            // [0] - [1]
-    ND_LESS,           // [0] < [1]
-    ND_LESS_OR_EQUAL,  // [0] <= [1]
-    ND_EQUAL,          // [0] == [1]
-    ND_NOT_EQUAL,      // [0] != [1]
-    ND_ASSIGN,         // [0] = [1]
-    ND_RETURN,         // return [0]
-    ND_IF,             // if ([0]) [1]
-    ND_IF_ELSE,        // if ([0]) [1] else [2]
-    ND_WHILE,          // while ([0]) [1]
-    ND_FOR,            // for ([0]; [1]; [2]) [3]
-    ND_NULL,           // 空文
-    ND_BLOCK,          // ブロック { [0] [1] [2] ...}
-    ND_FUNC,  // 関数定義 func_name([0], [1], [2], [3], [4], ..., [n-1]) [n]
-    ND_CALL,  // 関数呼び出し func_name([0], [1], [2], [3], [4], ...)
-    ND_PROGRAM  // プログラム全体 [0] [1] [2] ...
-} NodeKind;
+    EXP_CONST_INT,      // 定数
+    EXP_LOCAL_VAR,      // ローカル変数
+    EXP_DEREF,          // *[0]
+    EXP_ADDR,           // &[0]
+    EXP_MUL,            // [0] * [1]
+    EXP_DIV,            // [0] / [1]
+    EXP_ADD,            // [0] + [1]
+    EXP_SUB,            // [0] - [1]
+    EXP_LESS,           // [0] < [1]
+    EXP_LESS_OR_EQUAL,  // [0] <= [1]
+    EXP_EQUAL,          // [0] == [1]
+    EXP_NOT_EQUAL,      // [0] != [1]
+    EXP_ASSIGN,         // [0] = [1]
+    EXP_CALL            // 関数呼び出し func_name([0], [1], [2], [3]),
+} ExprKind;
+
+typedef enum {
+    STMT_RETURN,           // return [0]
+    STMT_IF,               // if ([0]) [1]
+    STMT_IF_ELSE,          // if ([0]) [1] else [2]
+    STMT_WHILE,            // while ([0]) [1]
+    STMT_FOR,              // for ([0]; [1]; [2]) [3]
+    STMT_BLOCK,            // ブロック { [0] [1] [2] ...}
+    STMT_FUNC_DEFINITION,  // 関数定義 func_name([0], [1], [2], [3], [4], ...,
+                           // [n-1]) [n]
+    STMT_PROGRAM,   // プログラム全体 [0] [1] [2] ...
+    STMT_ONLY_EXPR  //
+} StmtKind;
 
 typedef struct item *Item;
 
-// ノードの型
-typedef struct untyped_node {
-    NodeKind kind;  // ノードの種類
+// 式
+typedef struct untyped_expr {
+    ExprKind kind;  // ノードの種類
     Vec children;   // 子要素
     // Token token;    // 対応するトークン
     Item item;  // kind が ND_LOCAL_VAR, ND_CALL, ND_FUNC の場合、そのアイテム
     int val_int;  // kind が ND_CONST_INT の場合、その数値
-} *UntypedNode;
+} *UntypedExpr;
+
+// 文
+typedef struct stmt {
+    StmtKind kind;              // ノードの種類
+    Vec stmt_children;          // 子要素
+    Vec untyped_expr_children;  //
+    UntypedExpr untyped_expr;
+    // Token token;    // 対応するトークン
+    // Expr typed_expr;
+    Item item;  // kind が ND_LOCAL_VAR, ND_CALL, ND_FUNC の場合、そのアイテム
+    int val_int;  // kind が ND_CONST_INT の場合、その数値
+} *Stmt;
 
 // 型の種類
 typedef enum { TY_INT, TY_FUNC, TY_ARR, TY_PTR } TypeKind;
@@ -111,13 +126,13 @@ typedef struct type {
     int arr_len;
 } *Type;
 
-typedef struct typed_node {
-    NodeKind kind;
-    Item item;
-    Vec children;
-    int val_int;
-    Type type;  // kind が IT_LOCAL_VAR または IT_GLOBAL_VAR の場合、その型
-} *TypedNode;
+// typedef struct typed_node {
+//     NodeKind kind;
+//     Item item;
+//     Vec children;
+//     int val_int;
+//     Type type;  // kind が IT_LOCAL_VAR または IT_GLOBAL_VAR の場合、その型
+// } *TypedNode;
 
 // スコープの型
 typedef struct scope {
@@ -181,19 +196,32 @@ Item scope_def_local_var(Scope scope, Type type, char *name);
 Item new_item_local_var(Type type, char *name, int offset);
 Item new_item_func(Type type, char *name);
 
-// untyped_node.c
-UntypedNode new_untyped_node(NodeKind kind, ...);
-UntypedNode new_untyped_node_const_int(int val_int);
-UntypedNode new_untyped_node_local_var(Scope scope, char *name);
-UntypedNode new_untyped_node_local_var_with_def(Scope scope, Type type,
+// expr.c
+UntypedExpr new_untyped_expr(ExprKind kind, ...);
+UntypedExpr new_untyped_expr_const_int(int val_int);
+UntypedExpr new_untyped_expr_local_var(Scope scope, char *name);
+UntypedExpr new_untyped_expr_local_var_with_def(Scope scope, Type type,
                                                 char *name);
-UntypedNode new_untyped_node_func(Scope scope, Type type, char *name,
-                                  Vec children);
-UntypedNode new_untyped_node_null();
-UntypedNode new_untyped_node_block(Vec childs);
-UntypedNode new_untyped_node_call(Scope scope, char *name, Vec children);
-UntypedNode new_untyped_node_program(Vec children);
-UntypedNode untyped_node_get_child(UntypedNode node, int index);
+UntypedExpr new_untyped_expr_call(Scope scope, char *name, Vec children);
+UntypedExpr untyped_expr_get_child(UntypedExpr stmt, int index);
+
+// Stmt new_stmt(StmtKind kind, ...);
+Stmt new_stmt_only_expr(UntypedExpr untyped_expr);
+Stmt new_stmt_return(UntypedExpr untyped_expr);
+Stmt new_stmt_func_definition(Scope scope, Type type, char *name,
+                              Vec untyped_expr_children, Vec stmt_children);
+Stmt new_stmt_block(Vec stmt_children);
+Stmt new_stmt_program(Vec stmt_children);
+
+Stmt new_stmt_if(UntypedExpr cond, Stmt then_stmt);
+Stmt new_stmt_if_else(UntypedExpr cond, Stmt then_stmt, Stmt else_stmt);
+Stmt new_stmt_while(UntypedExpr cond, Stmt loop_stmt);
+Stmt new_stmt_for(UntypedExpr init, UntypedExpr cond, UntypedExpr update,
+                  Stmt loop_stmt);
+
+Stmt stmt_get_stmt_child(Stmt stmt, int index);
+UntypedExpr stmt_get_untyped_expr_child(Stmt stmt, int index);
+// stmt.c
 
 // typed_node.c
 // TypedNode new_typed_node_program(Vec children);
@@ -204,14 +232,13 @@ UntypedNode untyped_node_get_child(UntypedNode node, int index);
 // TypedNode new_typed_node_deref();
 
 // parse.c
-UntypedNode program();
+Stmt parse_program();
 
 // check.c
 // TypedNode to_typed(UntypedNode node);
-TypedNode to_typed(UntypedNode untyped_node, Type type);
 
 // gen.c
-void gen_program(UntypedNode node, FILE *fp);
+void gen_program(Stmt node, FILE *fp);
 
 // vec.c
 Vec new_vec_with_capacity(int capacity);

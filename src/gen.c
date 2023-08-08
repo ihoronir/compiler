@@ -18,22 +18,22 @@ static void print(int indent, char *fmt, ...) {
     va_end(ap);
 }
 
-static void gen(UntypedNode node, int depth);
+static void gen_untyped_expr(UntypedExpr untyped_expr, int depth);
 
-static void gen_address(UntypedNode node, int depth) {
+static void gen_address(UntypedExpr node, int depth) {
     int depth_initial = depth;
 
     switch (node->kind) {
-        case ND_LOCAL_VAR:
-            print(depth, "# gen_address: ND_LOCAL_VAR");
+        case EXP_LOCAL_VAR:
+            print(depth, "# gen_address: EXP_LOCAL_VAR");
             print(depth, "mov rax, rbp");
             print(depth, "sub rax, %d", node->item->offset);
             print(depth++, "push rax");
             break;
 
-        case ND_DEREF:
-            print(depth, "# gen_address: ND_DEREF");
-            gen(untyped_node_get_child(node, 0), depth++);
+        case EXP_DEREF:
+            print(depth, "# gen_address: EXP_DEREF");
+            gen_untyped_expr(untyped_expr_get_child(node, 0), depth++);
             break;
 
         default:
@@ -43,18 +43,19 @@ static void gen_address(UntypedNode node, int depth) {
     if (depth != depth_initial + 1) error("gen_address: unreachable");
 }
 
-static void gen(UntypedNode node, int depth) {
+static void gen_untyped_expr(UntypedExpr untyped_expr, int depth) {
     int depth_initial = depth;
 
-    switch (node->kind) {
-        case ND_CALL:
-            print(depth, "# ND_CALL");
+    switch (untyped_expr->kind) {
+        case EXP_CALL:
+            print(depth, "# EXP_CALL");
 
-            if (node->children->len > 6)
+            if (untyped_expr->children->len > 6)
                 error("6 個以上の実引数には対応していません");
 
-            for (int i = node->children->len - 1; i >= 0; i--) {
-                gen(untyped_node_get_child(node, i), depth++);
+            for (int i = untyped_expr->children->len - 1; i >= 0; i--) {
+                gen_untyped_expr(untyped_expr_get_child(untyped_expr, i),
+                                 depth++);
 
                 switch (i) {
                     case 0:
@@ -78,64 +79,42 @@ static void gen(UntypedNode node, int depth) {
                 }
             }
 
-            print(depth++, "push %d", node->children->len);
+            print(depth++, "push %d", untyped_expr->children->len);
             print(depth--, "pop rax");
 
             if (depth % 2 == 1) {
                 print(depth++, "add rsp, 8");
-                print(depth, "call %s", node->item->name);
+                print(depth, "call %s", untyped_expr->item->name);
                 print(depth--, "sub rsp, 8");
 
             } else {
-                print(depth, "call %s", node->item->name);
+                print(depth, "call %s", untyped_expr->item->name);
             }
 
             print(depth++, "push rax");
             break;
 
-        case ND_BLOCK:
-            print(depth, "# ND_BLOCK");
+        case EXP_CONST_INT:
+            print(depth, "# EXP_CONST_INT");
 
-            for (int i = 0; i < node->children->len; i++) {
-                gen(untyped_node_get_child(node, i), depth++);
-                print(depth--, "pop rax");
-            }
-            print(depth++, "push rax");
+            print(depth++, "push %d", untyped_expr->val_int);
             break;
 
-        case ND_RETURN:
-            print(depth, "# ND_RETURN");
+        case EXP_LOCAL_VAR:
+            print(depth, "# EXP_LOCAL_VAR");
 
-            gen(untyped_node_get_child(node, 0), depth++);
-
-            print(depth--, "pop rax");
-            print(depth, "mov rsp, rbp");
-            depth = 2;
-            print(depth--, "pop rbp");
-            print(depth, "ret");
-            break;
-
-        case ND_CONST_INT:
-            print(depth, "# ND_CONST_INT");
-
-            print(depth++, "push %d", node->val_int);
-            break;
-
-        case ND_LOCAL_VAR:
-            print(depth, "# ND_LOCAL_VAR");
-
-            gen_address(node, depth++);
+            gen_address(untyped_expr, depth++);
 
             print(depth--, "pop rax");
             print(depth, "mov rax, [rax]");
             print(depth++, "push rax");
             break;
 
-        case ND_ASSIGN:
-            print(depth, "# ND_ASSIGN");
+        case EXP_ASSIGN:
+            print(depth, "# EXP_ASSIGN");
 
-            gen_address(untyped_node_get_child(node, 0), depth++);
-            gen(untyped_node_get_child(node, 1), depth++);
+            gen_address(untyped_expr_get_child(untyped_expr, 0), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -144,127 +123,28 @@ static void gen(UntypedNode node, int depth) {
             print(depth++, "push rdi");
             break;
 
-        case ND_NULL:
-            print(depth, "# ND_NULL");
-            print(depth++, "push rax");
-            break;
+        case EXP_ADDR:
+            print(depth, "# EXP_ADDR");
 
-        case ND_IF: {
-            int id = gen_id();
-
-            print(depth, "# ND_IF");
-
-            gen(untyped_node_get_child(node, 0), depth++);
-
-            print(depth--, "pop rax");
-            print(depth, "cmp rax, 0");
-            print(depth, "je .Lend%08d", id);
-
-            gen(untyped_node_get_child(node, 1), depth++);
-
-            print(depth--, "pop rax");
-            print(depth, ".Lend%08d:", id);
-            print(depth++, "push rax");
-        } break;
-
-        case ND_IF_ELSE: {
-            int id = gen_id();
-
-            print(depth, "# ND_IF_ELSE");
-
-            gen(untyped_node_get_child(node, 0), depth++);
-
-            print(depth--, "pop rax");
-            print(depth, "cmp rax, 0");
-            print(depth, "je .Lelse%08d", id);
-
-            gen(untyped_node_get_child(node, 1), depth++);
-
-            print(depth--, "pop rax");
-            print(depth, "jmp .Lend%08d", id);
-            print(depth, ".Lelse%08d:", id);
-
-            gen(untyped_node_get_child(node, 2), depth++);
-
-            print(depth--, "pop rax");
-            print(depth, ".Lend%08d:", id);
-            print(depth++, "push rax");
-
-        } break;
-
-        case ND_WHILE: {
-            int id = gen_id();
-
-            print(depth, "# ND_WHILE");
-
-            print(depth, ".Lbegin%08d:", id);
-
-            gen(untyped_node_get_child(node, 0), depth++);
-
-            print(depth--, "pop rax");
-            print(depth, "cmp rax, 0");
-            print(depth, "je .Lend%08d", id);
-
-            gen(untyped_node_get_child(node, 1), depth++);
-
-            print(depth--, "pop rax");
-            print(depth, "jmp .Lbegin%08d", id);
-            print(depth, ".Lend%08d:", id);
-            print(depth++, "push rax");
-
-        } break;
-
-        case ND_FOR: {
-            int id = gen_id();
-
-            print(depth, "# ND_FOR");
-
-            gen(untyped_node_get_child(node, 0), depth++);
-
-            print(depth--, "pop rax");
-            print(depth, ".Lbegin%08d:", id);
-
-            gen(untyped_node_get_child(node, 1), depth++);
-
-            print(depth--, "pop rax");
-            print(depth, "cmp rax, 0");
-            print(depth, "je .Lend%08d", id);
-
-            gen(untyped_node_get_child(node, 3), depth++);
-
-            print(depth--, "pop rax");
-
-            gen(untyped_node_get_child(node, 2), depth++);
-
-            print(depth--, "pop rax");
-            print(depth, "jmp .Lbegin%08d", id);
-            print(depth, ".Lend%08d:", id);
-            print(depth++, "push rax");
-
-        } break;
-
-        case ND_ADDR:
-            print(depth, "# ND_ADDR");
-
-            gen_address(untyped_node_get_child(node, 0), depth++);
+            gen_address(untyped_expr_get_child(untyped_expr, 0), depth++);
 
             break;
 
-        case ND_DEREF:
-            print(depth, "# ND_DEREF");
+        case EXP_DEREF:
+            print(depth, "# EXP_DEREF");
 
-            gen(untyped_node_get_child(node, 0), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
 
             print(depth--, "pop rax");
             print(depth, "mov rax, [rax]");
             print(depth++, "push rax");
             break;
 
-        case ND_ADD: {
-            print(depth, "# ND_ADD");
+        case EXP_ADD: {
+            print(depth, "# EXP_ADD");
 
-            gen(untyped_node_get_child(node, 0), depth++);
-            gen(untyped_node_get_child(node, 1), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -273,11 +153,11 @@ static void gen(UntypedNode node, int depth) {
             print(depth++, "push rax");
         } break;
 
-        case ND_SUB:
-            print(depth, "# ND_SUB");
+        case EXP_SUB:
+            print(depth, "# EXP_SUB");
 
-            gen(untyped_node_get_child(node, 0), depth++);
-            gen(untyped_node_get_child(node, 1), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -286,11 +166,11 @@ static void gen(UntypedNode node, int depth) {
             print(depth++, "push rax");
             break;
 
-        case ND_MUL:
-            print(depth, "# ND_MUL");
+        case EXP_MUL:
+            print(depth, "# EXP_MUL");
 
-            gen(untyped_node_get_child(node, 0), depth++);
-            gen(untyped_node_get_child(node, 1), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -299,11 +179,11 @@ static void gen(UntypedNode node, int depth) {
             print(depth++, "push rax");
             break;
 
-        case ND_DIV:
-            print(depth, "# ND_DIV");
+        case EXP_DIV:
+            print(depth, "# EXP_DIV");
 
-            gen(untyped_node_get_child(node, 0), depth++);
-            gen(untyped_node_get_child(node, 1), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -313,11 +193,11 @@ static void gen(UntypedNode node, int depth) {
             print(depth++, "push rax");
             break;
 
-        case ND_EQUAL:
-            print(depth, "# ND_EQUAL");
+        case EXP_EQUAL:
+            print(depth, "# EXP_EQUAL");
 
-            gen(untyped_node_get_child(node, 0), depth++);
-            gen(untyped_node_get_child(node, 1), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -328,11 +208,11 @@ static void gen(UntypedNode node, int depth) {
             print(depth++, "push rax");
             break;
 
-        case ND_NOT_EQUAL:
-            print(depth, "# ND_NOT_EQUAL");
+        case EXP_NOT_EQUAL:
+            print(depth, "# EXP_NOT_EQUAL");
 
-            gen(untyped_node_get_child(node, 0), depth++);
-            gen(untyped_node_get_child(node, 1), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -343,11 +223,11 @@ static void gen(UntypedNode node, int depth) {
             print(depth++, "push rax");
             break;
 
-        case ND_LESS:
-            print(depth, "# ND_LESS");
+        case EXP_LESS:
+            print(depth, "# EXP_LESS");
 
-            gen(untyped_node_get_child(node, 0), depth++);
-            gen(untyped_node_get_child(node, 1), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -358,11 +238,11 @@ static void gen(UntypedNode node, int depth) {
             print(depth++, "push rax");
             break;
 
-        case ND_LESS_OR_EQUAL:
-            print(depth, "# ND_LESS_OR_EQUAL");
+        case EXP_LESS_OR_EQUAL:
+            print(depth, "# EXP_LESS_OR_EQUAL");
 
-            gen(untyped_node_get_child(node, 0), depth++);
-            gen(untyped_node_get_child(node, 1), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
+            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -372,35 +252,168 @@ static void gen(UntypedNode node, int depth) {
             print(depth, "movzb rax, al");
             print(depth++, "push rax");
             break;
-
-        default:
-            error("gen: unreachable");
     }
 
-    if ((node->kind == ND_RETURN && depth != 1) ||
-        (node->kind != ND_RETURN && depth != depth_initial + 1)) {
-        error("gen: unreachable");
+    if (depth != depth_initial + 1) assert(0);
+}
+
+static void gen_stmt(Stmt stmt, int depth) {
+    int depth_initial = depth;
+
+    switch (stmt->kind) {
+        case STMT_BLOCK:
+            print(depth, "# STMT_BLOCK");
+
+            for (int i = 0; i < stmt->stmt_children->len; i++) {
+                gen_stmt(stmt_get_stmt_child(stmt, i), depth++);
+                print(depth--, "pop rax");
+            }
+            print(depth++, "push rax");
+            break;
+
+        case STMT_ONLY_EXPR:
+            print(depth, "# STMT_ONLY_EXPR");
+            gen_untyped_expr(stmt->untyped_expr, depth++);
+
+            break;
+
+        case STMT_RETURN:
+            print(depth, "# STMT_RETURN");
+
+            gen_untyped_expr(stmt->untyped_expr, depth++);
+
+            print(depth--, "pop rax");
+            print(depth, "mov rsp, rbp");
+            depth = 2;
+            print(depth--, "pop rbp");
+            print(depth, "ret");
+            break;
+
+        case STMT_IF: {
+            int id = gen_id();
+
+            print(depth, "# STMT_IF");
+
+            gen_untyped_expr(stmt_get_untyped_expr_child(stmt, 0), depth++);
+
+            print(depth--, "pop rax");
+            print(depth, "cmp rax, 0");
+            print(depth, "je .Lend%08d", id);
+
+            gen_stmt(stmt_get_stmt_child(stmt, 0), depth++);
+
+            print(depth--, "pop rax");
+            print(depth, ".Lend%08d:", id);
+            print(depth++, "push rax");
+        } break;
+
+        case STMT_IF_ELSE: {
+            int id = gen_id();
+
+            print(depth, "# STMT_IF_ELSE");
+
+            gen_untyped_expr(stmt_get_untyped_expr_child(stmt, 0), depth++);
+
+            print(depth--, "pop rax");
+            print(depth, "cmp rax, 0");
+            print(depth, "je .Lelse%08d", id);
+
+            gen_stmt(stmt_get_stmt_child(stmt, 0), depth++);
+
+            print(depth--, "pop rax");
+            print(depth, "jmp .Lend%08d", id);
+            print(depth, ".Lelse%08d:", id);
+
+            gen_stmt(stmt_get_stmt_child(stmt, 1), depth++);
+
+            print(depth--, "pop rax");
+            print(depth, ".Lend%08d:", id);
+            print(depth++, "push rax");
+
+        } break;
+
+        case STMT_WHILE: {
+            int id = gen_id();
+
+            print(depth, "# STMT_WHILE");
+
+            print(depth, ".Lbegin%08d:", id);
+
+            gen_untyped_expr(stmt_get_untyped_expr_child(stmt, 0), depth++);
+
+            print(depth--, "pop rax");
+            print(depth, "cmp rax, 0");
+            print(depth, "je .Lend%08d", id);
+
+            gen_stmt(stmt_get_stmt_child(stmt, 0), depth++);
+
+            print(depth--, "pop rax");
+            print(depth, "jmp .Lbegin%08d", id);
+            print(depth, ".Lend%08d:", id);
+            print(depth++, "push rax");
+
+        } break;
+
+        case STMT_FOR: {
+            int id = gen_id();
+
+            print(depth, "# STMT_FOR");
+
+            gen_untyped_expr(stmt_get_untyped_expr_child(stmt, 0), depth++);
+
+            print(depth--, "pop rax");
+            print(depth, ".Lbegin%08d:", id);
+
+            gen_untyped_expr(stmt_get_untyped_expr_child(stmt, 1), depth++);
+
+            print(depth--, "pop rax");
+            print(depth, "cmp rax, 0");
+            print(depth, "je .Lend%08d", id);
+
+            gen_stmt(stmt_get_stmt_child(stmt, 0), depth++);
+
+            print(depth--, "pop rax");
+
+            gen_untyped_expr(stmt_get_untyped_expr_child(stmt, 2), depth++);
+
+            print(depth--, "pop rax");
+            print(depth, "jmp .Lbegin%08d", id);
+            print(depth, ".Lend%08d:", id);
+            print(depth++, "push rax");
+
+        } break;
+
+        case STMT_FUNC_DEFINITION:
+        case STMT_PROGRAM:
+            assert(0);
+            break;
+    }
+
+    if ((stmt->kind == STMT_RETURN && depth != 1) ||
+        (stmt->kind != STMT_RETURN && depth != depth_initial + 1)) {
+        assert(0);
     }
 }
 
-static void gen_func(UntypedNode node) {
-    if (node->kind != ND_FUNC) error("gen_func: unreachable");
+static void gen_func(Stmt stmt) {
+    assert(stmt->kind == STMT_FUNC_DEFINITION);
 
     int depth = 0;
 
-    print(depth++, "%s: # ND_FUNC", node->item->name);
+    print(depth++, "%s: # STMT_FUNC_DEFINITION", stmt->item->name);
 
     print(depth++, "push rbp");
 
     print(depth, "mov rbp, rsp");
 
-    print(depth, "sub rsp, %d", node->item->size);
-    depth += node->item->size / 8;
+    print(depth, "sub rsp, %d", stmt->item->size);
+    depth += stmt->item->size / 8;
 
-    if (node->children->len > 7) error("6 個以上の仮引数には対応していません");
+    if (stmt->untyped_expr_children->len > 6)
+        error("7 個以上の仮引数には対応していません");
 
-    for (int i = 0; i < node->children->len - 1; i++) {
-        gen_address(untyped_node_get_child(node, i), depth++);
+    for (int i = 0; i < stmt->untyped_expr_children->len; i++) {
+        gen_address(stmt_get_untyped_expr_child(stmt, i), depth++);
 
         print(depth--, "pop rax");
 
@@ -426,24 +439,28 @@ static void gen_func(UntypedNode node) {
         }
     }
 
-    gen(untyped_node_get_child(node, node->children->len - 1), depth++);
+    for (int i = 0; i < stmt->stmt_children->len; i++) {
+        gen_stmt(stmt_get_stmt_child(stmt, i), depth++);
+        print(depth--, "pop rax");
+    }
 
-    print(depth--, "pop rax");
     print(depth, "mov rsp, rbp");
     depth = 2;
     print(depth--, "pop rbp");
     print(depth, "ret");
 }
 
-void gen_program(UntypedNode node, FILE *out_fp) {
+void gen_program(Stmt stmt, FILE *out_fp) {
     out = out_fp;
-    if (node->kind != ND_PROGRAM) error("gen_program: unreachable");
+    assert(stmt->kind == STMT_PROGRAM);
 
     print(0, ".intel_syntax noprefix");
     print(0, ".globl main");
 
-    for (int i = 0; i < node->children->len; i++) {
+    for (int i = 0; i < stmt->stmt_children->len; i++) {
         fputc('\n', out);
-        gen_func(untyped_node_get_child(node, i));
+        Stmt child = stmt_get_stmt_child(stmt, i);
+        assert(child->kind == STMT_FUNC_DEFINITION);
+        gen_func(child);
     }
 }

@@ -60,11 +60,12 @@ int main(int argc, char **argv) {
     // トークナイズ
     char *user_input = read_file(argv[1]);
     tokenize(user_input);
-
     FILE *out_fp = fopen(argv[2], "w");
 
     // 解析木作成 -> コード生成
-    gen_program(program(), out_fp);
+    //
+    Stmt tree = parse_program();
+    gen_program(tree, out_fp);
 
     fclose(out_fp);
     return EXIT_SUCCESS;
