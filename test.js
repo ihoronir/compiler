@@ -1,5 +1,7 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read --allow-write
 
+let allSuccess = true;
+
 /**
  * path の末尾にはスラッシュをつけないでください
  */
@@ -102,19 +104,24 @@ async function test(path) {
             case status.compileErr:
                 console.log(no, '\u001b[33m' + result + '\u001b[0m');
                 //await Deno.rename("./test/" + name, "./test_todo/" + name);
+                allSuccess = false;
                 break;
 
             case status.linkErr:
                 console.log(no, '\u001b[34m' + result + '\u001b[0m');
                 //await Deno.rename("./test/" + name, "./test_todo/" + name);
+                allSuccess = false;
                 break;
 
             case status.execErr:
                 console.log(no, '\u001b[31m' + result + '\u001b[0m');
                 //await Deno.rename("./test/" + name, "./test_todo/" + name);
+                allSuccess = false;
                 break;
         }
     };
 }
 
 test(Deno.args[0]);
+
+Deno.exit(allSuccess ? 0 : 1);
