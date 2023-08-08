@@ -207,7 +207,8 @@ UntypedNode untyped_node_get_child(UntypedNode node, int index);
 UntypedNode program();
 
 // check.c
-TypedNode to_typed(UntypedNode node);
+// TypedNode to_typed(UntypedNode node);
+TypedNode to_typed(UntypedNode untyped_node, Type type);
 
 // gen.c
 void gen_program(UntypedNode node, FILE *fp);
