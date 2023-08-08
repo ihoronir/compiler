@@ -454,7 +454,7 @@ void gen_program(Stmt stmt, FILE *out_fp) {
     out = out_fp;
     assert(stmt->kind == STMT_PROGRAM);
 
-    print(0, "aiueo.intel_syntax noprefix");
+    print(0, ".intel_syntax noprefix");
     print(0, ".globl main");
 
     for (int i = 0; i < stmt->stmt_children->len; i++) {

@@ -122,6 +122,6 @@ async function test(path) {
     };
 }
 
-test(Deno.args[0]);
+await test(Deno.args[0]);
 
 Deno.exit(allSuccess ? 0 : 1);
