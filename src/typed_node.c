@@ -23,20 +23,20 @@
 // }
 //
 //
-TypedNode to_typed(UntypedNode untyped_node, Type type) {
-    TypedNode typed_node = checked_malloc(sizeof(*typed_node));
-    typed_node->kind = untyped_node->kind;
-    typed_node->item = untyped_node->item;
-    typed_node->val_int = untyped_node->val_int;
-    typed_node->type = type;
-
-    // NodeKind kind;
-    // Item item;
-    // Vec children;
-    // int val_int;
-    // Type type;  // kind が IT_LOCAL_VAR または IT_GLOBAL_VAR の場合、その型
-    return typed_node;
-}
+// TypedNode to_typed(UntypedNode untyped_node, Type type) {
+//    TypedNode typed_node = checked_malloc(sizeof(*typed_node));
+//    typed_node->kind = untyped_node->kind;
+//    typed_node->item = untyped_node->item;
+//    typed_node->val_int = untyped_node->val_int;
+//    typed_node->type = type;
+//
+//    // NodeKind kind;
+//    // Item item;
+//    // Vec children;
+//    // int val_int;
+//    // Type type;  // kind が IT_LOCAL_VAR または IT_GLOBAL_VAR の場合、その型
+//    return typed_node;
+//}
 
 // TypedNode new_typed_node_const_int(int val_int) {
 // }
