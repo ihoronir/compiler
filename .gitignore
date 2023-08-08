@@ -9,6 +9,10 @@ a.out
 /target/compiler
 /test/target/*
 !/test/target/.keep
+/test_todo/target/*
+!/test_todo/target/.keep
+/test_working/target/*
+!/test_working/target/.keep
 
 .cache/
 compile_commands.json
