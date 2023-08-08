@@ -99,21 +99,9 @@ typedef struct untyped_expr {
     ExprKind kind;  // ノードの種類
     Vec children;   // 子要素
     // Token token;    // 対応するトークン
-    Item item;  // kind が ND_LOCAL_VAR, ND_CALL, ND_FUNC の場合、そのアイテム
-    int val_int;  // kind が ND_CONST_INT の場合、その数値
+    Item item;
+    int val_int;
 } *UntypedExpr;
-
-// 文
-typedef struct stmt {
-    StmtKind kind;              // ノードの種類
-    Vec stmt_children;          // 子要素
-    Vec untyped_expr_children;  //
-    UntypedExpr untyped_expr;
-    // Token token;    // 対応するトークン
-    // Expr typed_expr;
-    Item item;  // kind が ND_LOCAL_VAR, ND_CALL, ND_FUNC の場合、そのアイテム
-    int val_int;  // kind が ND_CONST_INT の場合、その数値
-} *Stmt;
 
 // 型の種類
 typedef enum { TY_INT, TY_FUNC, TY_ARR, TY_PTR } TypeKind;
@@ -126,6 +114,26 @@ typedef struct type {
     int arr_len;
 } *Type;
 
+typedef struct typed_expr {
+    ExprKind kind;  // ノードの種類
+    Vec children;   // 子要素
+    // Token token;    // 対応するトークン
+    Item item;
+    Type type;
+    int val_int;
+} *TypedExpr;
+
+// 文
+typedef struct stmt {
+    StmtKind kind;              // ノードの種類
+    Vec stmt_children;          // 子要素
+    Vec untyped_expr_children;  //
+    UntypedExpr untyped_expr;
+    // Token token;    // 対応するトークン
+    // Expr typed_expr;
+    Item item;  // kind が ND_LOCAL_VAR, ND_CALL, ND_FUNC の場合、そのアイテム
+    int val_int;  // kind が ND_CONST_INT の場合、その数値
+} *Stmt;
 // typedef struct typed_node {
 //     NodeKind kind;
 //     Item item;
@@ -180,9 +188,11 @@ Token tokens_peek();
 void tokenize(char *p);
 
 // type.c
+int type_size(Type type);
 Type new_type_int();
 Type new_type_ptr(Type ptr_to);
 Type new_type_func(Type returning);
+int type_is_equal(Type type1, Type type2);
 
 // scope.c
 Scope new_scope_global();
@@ -203,7 +213,7 @@ UntypedExpr new_untyped_expr_local_var(Scope scope, char *name);
 UntypedExpr new_untyped_expr_local_var_with_def(Scope scope, Type type,
                                                 char *name);
 UntypedExpr new_untyped_expr_call(Scope scope, char *name, Vec children);
-UntypedExpr untyped_expr_get_child(UntypedExpr stmt, int index);
+UntypedExpr untyped_expr_get_child(UntypedExpr untyped_expr, int index);
 
 // Stmt new_stmt(StmtKind kind, ...);
 Stmt new_stmt_only_expr(UntypedExpr untyped_expr);

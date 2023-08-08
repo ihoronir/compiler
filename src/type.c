@@ -31,7 +31,7 @@ Type new_type_func(Type returning) {
     return type;
 }
 
-int type_cmp(Type type1, Type type2) {
+int type_is_equal(Type type1, Type type2) {
     if (type1->kind != type2->kind) return 0;
     switch (type1->kind) {
         case TY_INT:
