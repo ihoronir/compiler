@@ -1,1 +1,1 @@
-int main() { 5 + 6 * 7; }
+int main() { return 5 + 6 * 7; }

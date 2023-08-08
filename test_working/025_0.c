@@ -1,1 +1,1 @@
-int main() { +24 != +24; }
+int main() { return +24 != +24; }

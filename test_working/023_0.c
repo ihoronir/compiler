@@ -1,1 +1,1 @@
-int main() { 35 == -35; }
+int main() { return 35 == -35; }
