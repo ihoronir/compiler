@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
     FILE *out_fp = fopen(argv[2], "w");
 
     // 解析木作成 -> コード生成
-    gen_program(program(), out_fp);
+    gen_program(parse_program(), out_fp);
 
     fclose(out_fp);
     return EXIT_SUCCESS;

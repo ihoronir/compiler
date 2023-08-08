@@ -37,14 +37,14 @@ static int expect_const_int() {
     return token->val_int;
 }
 
-static UntypedNode expr(Scope scope);
+static UntypedExpr parse_expr(Scope scope);
 
 // primary = num
 //         | ident ("(" ")")?
 //         | "(" expr ")"
-static UntypedNode primary(Scope scope) {
+static UntypedExpr parse_primary(Scope scope) {
     if (consume(TK_LEFT_PAREN)) {
-        UntypedNode untyped_node = expr(scope);
+        UntypedExpr untyped_node = parse_expr(scope);
         expect(TK_RIGHT_PAREN);
         return untyped_node;
     }
@@ -56,55 +56,55 @@ static UntypedNode primary(Scope scope) {
 
             if (!consume(TK_RIGHT_PAREN)) {
                 do {
-                    vec_push(children, expr(scope));
+                    vec_push(children, parse_expr(scope));
                 } while (consume(TK_COMMA));
                 expect(TK_RIGHT_PAREN);
             }
 
-            return new_untyped_node_call(scope, name, children);
+            return new_untyped_expr_call(scope, name, children);
         }
 
-        return new_untyped_node_local_var(scope, name);
+        return new_untyped_expr_local_var(scope, name);
     }
 
     // そうでなければ数値のはず
-    UntypedNode untyped_node = new_untyped_node_const_int(expect_const_int());
+    UntypedExpr untyped_node = new_untyped_expr_const_int(expect_const_int());
     return untyped_node;
 }
 
 // unary = ("+" | "-")? primary
-static UntypedNode unary(Scope scope) {
+static UntypedExpr parse_unary(Scope scope) {
     for (;;) {
         if (consume(TK_PLUS)) {
-            return primary(scope);
+            return parse_primary(scope);
 
         } else if (consume(TK_MINUS)) {
-            return new_untyped_node(ND_SUB, new_untyped_node_const_int(0),
-                                    primary(scope), NULL);
+            return new_untyped_expr(EXP_SUB, new_untyped_expr_const_int(0),
+                                    parse_primary(scope), NULL);
 
         } else if (consume(TK_ASTERISK)) {
-            return new_untyped_node(ND_DEREF, unary(scope), NULL);
+            return new_untyped_expr(EXP_DEREF, parse_unary(scope), NULL);
 
         } else if (consume(TK_AND)) {
-            return new_untyped_node(ND_ADDR, unary(scope), NULL);
+            return new_untyped_expr(EXP_ADDR, parse_unary(scope), NULL);
         }
 
-        return primary(scope);
+        return parse_primary(scope);
     }
 }
 
 // mul = unary ("*" unary | "/" unary)*
-static UntypedNode mul(Scope scope) {
-    UntypedNode untyped_node = unary(scope);
+static UntypedExpr parse_mul(Scope scope) {
+    UntypedExpr untyped_node = parse_unary(scope);
 
     for (;;) {
         if (consume(TK_ASTERISK)) {
-            untyped_node =
-                new_untyped_node(ND_MUL, untyped_node, unary(scope), NULL);
+            untyped_node = new_untyped_expr(EXP_MUL, untyped_node,
+                                            parse_unary(scope), NULL);
 
         } else if (consume(TK_SLASH)) {
-            untyped_node =
-                new_untyped_node(ND_DIV, untyped_node, unary(scope), NULL);
+            untyped_node = new_untyped_expr(EXP_DIV, untyped_node,
+                                            parse_unary(scope), NULL);
 
         } else {
             return untyped_node;
@@ -113,17 +113,17 @@ static UntypedNode mul(Scope scope) {
 }
 
 // add = mul ("+" mul | "-" mul)*
-static UntypedNode add(Scope scope) {
-    UntypedNode untyped_node = mul(scope);
+static UntypedExpr parse_add(Scope scope) {
+    UntypedExpr untyped_node = parse_mul(scope);
 
     for (;;) {
         if (consume(TK_PLUS)) {
             untyped_node =
-                new_untyped_node(ND_ADD, untyped_node, mul(scope), NULL);
+                new_untyped_expr(EXP_ADD, untyped_node, parse_mul(scope), NULL);
 
         } else if (consume(TK_MINUS)) {
             untyped_node =
-                new_untyped_node(ND_SUB, untyped_node, mul(scope), NULL);
+                new_untyped_expr(EXP_SUB, untyped_node, parse_mul(scope), NULL);
 
         } else {
             return untyped_node;
@@ -132,24 +132,24 @@ static UntypedNode add(Scope scope) {
 }
 
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
-static UntypedNode relational(Scope scope) {
-    UntypedNode untyped_node = add(scope);
+static UntypedExpr parse_relational(Scope scope) {
+    UntypedExpr untyped_node = parse_add(scope);
 
     for (;;) {
         if (consume(TK_LESS)) {
-            untyped_node =
-                new_untyped_node(ND_LESS, untyped_node, add(scope), NULL);
+            untyped_node = new_untyped_expr(EXP_LESS, untyped_node,
+                                            parse_add(scope), NULL);
 
         } else if (consume(TK_LESS_EQUAL)) {
-            untyped_node = new_untyped_node(ND_LESS_OR_EQUAL, untyped_node,
-                                            add(scope), NULL);
+            untyped_node = new_untyped_expr(EXP_LESS_OR_EQUAL, untyped_node,
+                                            parse_add(scope), NULL);
 
         } else if (consume(TK_MORE)) {
-            untyped_node =
-                new_untyped_node(ND_LESS, add(scope), untyped_node, NULL);
+            untyped_node = new_untyped_expr(EXP_LESS, parse_add(scope),
+                                            untyped_node, NULL);
 
         } else if (consume(TK_MORE_EQUAL)) {
-            untyped_node = new_untyped_node(ND_LESS_OR_EQUAL, add(scope),
+            untyped_node = new_untyped_expr(EXP_LESS_OR_EQUAL, parse_add(scope),
                                             untyped_node, NULL);
 
         } else {
@@ -159,17 +159,17 @@ static UntypedNode relational(Scope scope) {
 }
 
 // equality = relational ("==" relational | "!=" relational)*
-static UntypedNode equality(Scope scope) {
-    UntypedNode untyped_node = relational(scope);
+static UntypedExpr parse_equality(Scope scope) {
+    UntypedExpr untyped_node = parse_relational(scope);
 
     for (;;) {
         if (consume(TK_EQUAL_EQUAL)) {
-            untyped_node = new_untyped_node(ND_EQUAL, untyped_node,
-                                            relational(scope), NULL);
+            untyped_node = new_untyped_expr(EXP_EQUAL, untyped_node,
+                                            parse_relational(scope), NULL);
 
         } else if (consume(TK_EXCL_EQUAL)) {
-            untyped_node = new_untyped_node(ND_NOT_EQUAL, untyped_node,
-                                            relational(scope), NULL);
+            untyped_node = new_untyped_expr(EXP_NOT_EQUAL, untyped_node,
+                                            parse_relational(scope), NULL);
 
         } else {
             return untyped_node;
@@ -177,19 +177,19 @@ static UntypedNode equality(Scope scope) {
     }
 }
 // assign = equality ("=" assign)?
-static UntypedNode assign(Scope scope) {
-    UntypedNode untyped_node = equality(scope);
+static UntypedExpr parse_assign(Scope scope) {
+    UntypedExpr untyped_node = parse_equality(scope);
 
     if (consume(TK_EQUAL)) {
-        untyped_node =
-            new_untyped_node(ND_ASSIGN, untyped_node, assign(scope), NULL);
+        untyped_node = new_untyped_expr(EXP_ASSIGN, untyped_node,
+                                        parse_assign(scope), NULL);
     }
 
     return untyped_node;
 }
 
 // expr = assign
-static UntypedNode expr(Scope scope) { return assign(scope); }
+static UntypedExpr parse_expr(Scope scope) { return parse_assign(scope); }
 
 // stmt = "int" ( "*" )* ident ";"
 //      | "int" ident ";"
@@ -201,7 +201,7 @@ static UntypedNode expr(Scope scope) { return assign(scope); }
 //      | "return" expr ";"
 //      | "int" ident ";"
 //      | expr ";"
-static UntypedNode stmt(Scope scope) {
+static Stmt parse_stmt(Scope scope) {
     // "int" ident ";"
     if (consume(TK_INT)) {
         Type type = new_type_int();
@@ -216,13 +216,11 @@ static UntypedNode stmt(Scope scope) {
             }
         }
         expect(TK_SEMICOLON);
-        return new_untyped_node_null();
+        return NULL;
     }
 
     // ";"
-    if (consume(TK_SEMICOLON)) {
-        return new_untyped_node_null();
-    }
+    if (consume(TK_SEMICOLON)) return NULL;
 
     // "{" stmt* "}"
     if (consume(TK_LEFT_BRACE)) {
@@ -230,111 +228,112 @@ static UntypedNode stmt(Scope scope) {
 
         Scope block_scope = new_scope(scope);
         while (!consume(TK_RIGHT_BRACE)) {
-            vec_push(children, stmt(block_scope));
+            vec_push(children, parse_stmt(block_scope));
         }
 
-        return new_untyped_node_block(children);
+        return new_stmt_block(children);
     }
 
     // "if" "(" expr ")" stmt ("else" stmt)?
     if (consume(TK_IF)) {
         expect(TK_LEFT_PAREN);
-        UntypedNode cond = expr(scope);
+        UntypedExpr cond = parse_expr(scope);
         expect(TK_RIGHT_PAREN);
-        UntypedNode then = stmt(scope);
+        Stmt then = parse_stmt(scope);
 
         if (consume(TK_ELSE)) {
-            return new_untyped_node(ND_IF_ELSE, cond, then, stmt(scope), NULL);
+            return new_stmt_if_else(cond, then, parse_stmt(scope));
 
         } else {
-            return new_untyped_node(ND_IF, cond, then, NULL);
+            return new_stmt_if(cond, then);
         }
     }
 
     // "while" "(" expr ")" stmt
     if (consume(TK_WHILE)) {
         expect(TK_LEFT_PAREN);
-        UntypedNode cond = expr(scope);
+        UntypedExpr cond = parse_expr(scope);
         expect(TK_RIGHT_PAREN);
 
-        return new_untyped_node(ND_WHILE, cond, stmt(scope), NULL);
+        return new_stmt_while(cond, parse_stmt(scope));
     }
 
     // "for" "(" expr? ";" expr? ";" expr? ")" stmt
     if (consume(TK_FOR)) {
         expect(TK_LEFT_PAREN);
 
-        UntypedNode init;
+        UntypedExpr init;
         if (consume(TK_SEMICOLON)) {
-            init = new_untyped_node_null();
+            init = NULL;
 
         } else {
-            init = expr(scope);
+            init = parse_expr(scope);
             expect(TK_SEMICOLON);
         }
 
-        UntypedNode cond;
+        UntypedExpr cond;
         if (consume(TK_SEMICOLON)) {
-            cond = new_untyped_node_null();
+            cond = new_untyped_expr_const_int(1);
 
         } else {
-            cond = expr(scope);
+            cond = parse_expr(scope);
             expect(TK_SEMICOLON);
         }
 
-        UntypedNode update;
+        UntypedExpr update;
         if (consume(TK_RIGHT_PAREN)) {
-            update = new_untyped_node_null();
+            update = NULL;
 
         } else {
-            update = expr(scope);
+            update = parse_expr(scope);
             expect(TK_RIGHT_PAREN);
         }
 
-        return new_untyped_node(ND_FOR, init, cond, update, stmt(scope), NULL);
+        return new_stmt_for(init, cond, update, parse_stmt(scope));
     }
 
     // "return" expr ";"
     if (consume(TK_RETURN)) {
-        UntypedNode untyped_node =
-            new_untyped_node(ND_RETURN, expr(scope), NULL);
+        Stmt stmt = new_stmt_return(parse_expr(scope));
         expect(TK_SEMICOLON);
-        return untyped_node;
+        return stmt;
     }
 
     // expr ";"
-    UntypedNode untyped_node = expr(scope);
+    Stmt stmt = new_stmt_only_expr(parse_expr(scope));
     expect(TK_SEMICOLON);
-    return untyped_node;
+    return stmt;
 }
 
 // func = "int" ident "(" ("int" ident ",")* ")" "{" stmt* "}"
-UntypedNode func(Scope scope) {
+Stmt parse_func_definition(Scope scope) {
     expect(TK_INT);
 
     Type type = new_type_int();
-    Vec children = new_vec();
-    UntypedNode untyped_node;
+    Vec untyped_expr_children = new_vec();
+    Vec stmt_children = new_vec();
+    Stmt stmt;
 
     for (;;) {
         if (consume(TK_ASTERISK)) {
             type = new_type_ptr(type);
 
         } else {
-            untyped_node = new_untyped_node_func(scope, new_type_func(type),
-                                                 expect_ident(), children);
+            stmt = new_stmt_func_definition(
+                scope, new_type_func(type), expect_ident(),
+                untyped_expr_children, stmt_children);
             break;
         }
     }
 
-    Scope func_scope = new_scope_func(scope, untyped_node->item);
+    Scope func_scope = new_scope_func(scope, stmt->item);
 
     expect(TK_LEFT_PAREN);
     if (!consume(TK_RIGHT_PAREN)) {
         do {
             expect(TK_INT);
 
-            UntypedNode untyped_node;
+            UntypedExpr untyped_expr;
             Type type = new_type_int();
 
             for (;;) {
@@ -342,13 +341,13 @@ UntypedNode func(Scope scope) {
                     type = new_type_ptr(type);
 
                 } else {
-                    untyped_node = new_untyped_node_local_var_with_def(
+                    untyped_expr = new_untyped_expr_local_var_with_def(
                         func_scope, type, expect_ident());
                     break;
                 }
             }
 
-            vec_push(children, untyped_node);
+            vec_push(untyped_expr_children, untyped_expr);
 
         } while (consume(TK_COMMA));
         expect(TK_RIGHT_PAREN);
@@ -357,11 +356,11 @@ UntypedNode func(Scope scope) {
     if (consume(TK_LEFT_BRACE)) {
         Vec func_block_children = new_vec();
         while (!consume(TK_RIGHT_BRACE)) {
-            vec_push(func_block_children, stmt(func_scope));
+            vec_push(func_block_children, parse_stmt(func_scope));
         }
-        vec_push(children, new_untyped_node_block(func_block_children));
+        vec_push(stmt_children, new_stmt_block(func_block_children));
 
-        return untyped_node;
+        return stmt;
 
     } else {
         expect(TK_SEMICOLON);
@@ -370,14 +369,14 @@ UntypedNode func(Scope scope) {
 }
 
 // program = func*;
-UntypedNode program() {
+Stmt parse_program() {
     Vec children = new_vec();
     Scope scope = new_scope_global();
 
     while (!consume(TK_EOF)) {
-        UntypedNode fn = func(scope);
+        Stmt fn = parse_func_definition(scope);
         if (fn != NULL) vec_push(children, fn);
     }
 
-    return new_untyped_node_program(children);
+    return new_stmt_program(children);
 }

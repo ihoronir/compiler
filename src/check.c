@@ -1,5 +1,5 @@
 #include "compiler.h"
-
+/*
 TypedNode to_typed(UntypedNode untyped_node) {
     switch (untyped_node->kind) {
         case ND_PROGRAM: {
@@ -118,3 +118,4 @@ TypedNode to_typed(UntypedNode untyped_node) {
                     // [3]:break; [4]:break; ...)
     }
 }
+*/
