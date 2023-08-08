@@ -76,25 +76,26 @@ static UntypedExpr parse_primary(Scope scope) {
     return untyped_node;
 }
 
-// unary = ("+" | "-")? primary
+// unary = "sizeof" unary | ("+" | "-")? primary
 static UntypedExpr parse_unary(Scope scope) {
-    for (;;) {
-        if (consume(TK_PLUS)) {
-            return parse_primary(scope);
+    if (consume(TK_SIZEOF)) {
+        return new_untyped_expr(EXP_SIZEOF, parse_unary(scope), NULL);
 
-        } else if (consume(TK_MINUS)) {
-            return new_untyped_expr(EXP_SUB, new_untyped_expr_const_int(0),
-                                    parse_primary(scope), NULL);
-
-        } else if (consume(TK_ASTERISK)) {
-            return new_untyped_expr(EXP_DEREF, parse_unary(scope), NULL);
-
-        } else if (consume(TK_AND)) {
-            return new_untyped_expr(EXP_ADDR, parse_unary(scope), NULL);
-        }
-
+    } else if (consume(TK_PLUS)) {
         return parse_primary(scope);
+
+    } else if (consume(TK_MINUS)) {
+        return new_untyped_expr(EXP_SUB, new_untyped_expr_const_int(0),
+                                parse_primary(scope), NULL);
+
+    } else if (consume(TK_ASTERISK)) {
+        return new_untyped_expr(EXP_DEREF, parse_unary(scope), NULL);
+
+    } else if (consume(TK_AND)) {
+        return new_untyped_expr(EXP_ADDR, parse_unary(scope), NULL);
     }
+
+    return parse_primary(scope);
 }
 
 // mul = unary ("*" unary | "/" unary)*

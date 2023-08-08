@@ -10,6 +10,7 @@ static int children_num(ExprKind kind) {
         // 非終端記号（子の個数が固定）
         case EXP_ADDR:
         case EXP_DEREF:
+        case EXP_SIZEOF:
             return 1;
         case EXP_MUL:
         case EXP_DIV:

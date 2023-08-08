@@ -6,6 +6,17 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
     te->item = ue->item;
 
     switch (ue->kind) {
+        case EXP_SIZEOF: {
+            te->kind = EXP_CONST_INT;
+
+            UntypedExpr u_child = untyped_expr_get_child(ue, 0);
+            TypedExpr t_child = to_typed_expr(u_child);
+
+            te->val_int = type_size(t_child->type);
+            te->type = new_type_int();
+            return te;
+        }
+
         case EXP_CONST_INT:
             te->val_int = ue->val_int;
             te->type = new_type_int();

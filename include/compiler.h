@@ -50,6 +50,7 @@ typedef enum {
     TK_MORE_EQUAL,   // ">="
     TK_EQUAL_EQUAL,  // "=="
     TK_EXCL_EQUAL,   // "!="
+    TK_SIZEOF,       // "sizeof"
     TK_EOF,          // EOF
 } TokenKind;
 
@@ -76,7 +77,8 @@ typedef enum {
     EXP_EQUAL,          // [0] == [1]
     EXP_NOT_EQUAL,      // [0] != [1]
     EXP_ASSIGN,         // [0] = [1]
-    EXP_CALL            // 関数呼び出し func_name([0], [1], [2], [3]),
+    EXP_CALL,           // 関数呼び出し func_name([0], [1], [2], [3]),
+    EXP_SIZEOF          //
 } ExprKind;
 
 typedef enum {

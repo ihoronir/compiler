@@ -44,6 +44,12 @@ void tokenize(char *p) {
                 break;
         }
 
+        if (strncmp(p, "sizeof", 6) == 0 && !is_alnum(p[6])) {
+            tokens_push(TK_SIZEOF, line, row);
+            p += 6;
+            continue;
+        }
+
         if (strncmp(p, "return", 6) == 0 && !is_alnum(p[6])) {
             tokens_push(TK_RETURN, line, row);
             p += 6;
