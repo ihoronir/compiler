@@ -86,7 +86,6 @@ UntypedExpr new_untyped_expr_call(Scope scope, char *name, Vec children) {
 }
 
 UntypedExpr untyped_expr_get_child(UntypedExpr untyped_expr, int index) {
-    if (index >= untyped_expr->children->len)
-        error("untyped_expr_get_child: 範囲外アクセス");
+    assert(index < untyped_expr->children->len);
     return untyped_expr->children->buf[index];
 }

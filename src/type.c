@@ -37,10 +37,10 @@ int type_is_equal(Type type1, Type type2) {
         case TY_INT:
             return 1;
         case TY_PTR:
-            return type_cmp(type1->ptr_to, type2->ptr_to);
+            return type_is_equal(type1->ptr_to, type2->ptr_to);
         default:
-            error("type_cmp: unimplemented");
-            error("type_cmp: unreacnable");
+            error("type_is_equal: unimplemented");
+            error("type_is_equal: unreacnable");
             return 0;
     }
 }

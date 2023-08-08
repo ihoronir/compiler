@@ -63,8 +63,11 @@ int main(int argc, char **argv) {
     FILE *out_fp = fopen(argv[2], "w");
 
     // 解析木作成 -> コード生成
-    //
     Stmt tree = parse_program();
+
+    // チェック
+    make_stmt_typed(tree);
+
     gen_program(tree, out_fp);
 
     fclose(out_fp);

@@ -128,19 +128,12 @@ typedef struct stmt {
     StmtKind kind;              // ノードの種類
     Vec stmt_children;          // 子要素
     Vec untyped_expr_children;  //
-    UntypedExpr untyped_expr;
+    Vec typed_expr_children;    //
     // Token token;    // 対応するトークン
     // Expr typed_expr;
     Item item;  // kind が ND_LOCAL_VAR, ND_CALL, ND_FUNC の場合、そのアイテム
     int val_int;  // kind が ND_CONST_INT の場合、その数値
 } *Stmt;
-// typedef struct typed_node {
-//     NodeKind kind;
-//     Item item;
-//     Vec children;
-//     int val_int;
-//     Type type;  // kind が IT_LOCAL_VAR または IT_GLOBAL_VAR の場合、その型
-// } *TypedNode;
 
 // スコープの型
 typedef struct scope {
@@ -231,21 +224,17 @@ Stmt new_stmt_for(UntypedExpr init, UntypedExpr cond, UntypedExpr update,
 
 Stmt stmt_get_stmt_child(Stmt stmt, int index);
 UntypedExpr stmt_get_untyped_expr_child(Stmt stmt, int index);
-// stmt.c
+TypedExpr stmt_get_typed_expr_child(Stmt stmt, int index);
 
-// typed_node.c
-// TypedNode new_typed_node_program(Vec children);
-// TypedNode new_typed_node_func(Item item, Vec children);
-// TypedNode new_typed_node_block(Vec children);
-// TypedNode new_typed_node_const_int(int val_int);
-// TypedNode new_typed_node_local_var(Item item);
-// TypedNode new_typed_node_deref();
+// expr
+TypedExpr to_typed_expr(UntypedExpr ue);
+TypedExpr typed_expr_get_child(TypedExpr typed_expr, int index);
 
 // parse.c
 Stmt parse_program();
 
 // check.c
-// TypedNode to_typed(UntypedNode node);
+void make_stmt_typed(Stmt stmt);
 
 // gen.c
 void gen_program(Stmt node, FILE *fp);

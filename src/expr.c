@@ -1,6 +1,6 @@
 #include "compiler.h"
 
-TypedExpr to_typed(UntypedExpr ue) {
+TypedExpr to_typed_expr(UntypedExpr ue) {
     TypedExpr te = checked_malloc(sizeof(*te));
     te->kind = ue->kind;
     te->item = ue->item;
@@ -17,7 +17,7 @@ TypedExpr to_typed(UntypedExpr ue) {
 
         case EXP_DEREF: {
             UntypedExpr u_child = untyped_expr_get_child(ue, 0);
-            TypedExpr t_child = to_typed(u_child);
+            TypedExpr t_child = to_typed_expr(u_child);
             if (t_child->type->kind != TY_PTR)
                 error("ポインタではないものを Deref しました");
 
@@ -29,7 +29,7 @@ TypedExpr to_typed(UntypedExpr ue) {
 
         case EXP_ADDR: {
             UntypedExpr u_child = untyped_expr_get_child(ue, 0);
-            TypedExpr t_child = to_typed(u_child);
+            TypedExpr t_child = to_typed_expr(u_child);
 
             te->type = new_type_ptr(t_child->type);
             te->children = new_vec_with_capacity(1);
@@ -40,10 +40,10 @@ TypedExpr to_typed(UntypedExpr ue) {
         case EXP_DIV:
         case EXP_MUL: {
             UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
-            TypedExpr t_lhs = to_typed(u_lhs);
+            TypedExpr t_lhs = to_typed_expr(u_lhs);
 
             UntypedExpr u_rhs = untyped_expr_get_child(ue, 1);
-            TypedExpr t_rhs = to_typed(u_rhs);
+            TypedExpr t_rhs = to_typed_expr(u_rhs);
 
             if (t_lhs->type->kind != TY_INT || t_rhs->type->kind != TY_INT)
                 error("INT 同士でしか掛け算・割り算はできません");
@@ -57,10 +57,10 @@ TypedExpr to_typed(UntypedExpr ue) {
 
         case EXP_ADD: {
             UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
-            TypedExpr t_lhs = to_typed(u_lhs);
+            TypedExpr t_lhs = to_typed_expr(u_lhs);
 
             UntypedExpr u_rhs = untyped_expr_get_child(ue, 1);
-            TypedExpr t_rhs = to_typed(u_rhs);
+            TypedExpr t_rhs = to_typed_expr(u_rhs);
 
             if (t_lhs->type->kind == TY_INT && t_rhs->type->kind == TY_INT) {
                 te->type = new_type_int();
@@ -76,7 +76,7 @@ TypedExpr to_typed(UntypedExpr ue) {
                 te->children = new_vec_with_capacity(2);
                 vec_push(te->children, t_lhs);
                 int size = type_size(t_lhs->type->ptr_to);
-                TypedExpr multiplied = to_typed(new_untyped_expr(
+                TypedExpr multiplied = to_typed_expr(new_untyped_expr(
                     EXP_MUL, u_rhs, new_untyped_expr_const_int(size), NULL));
                 vec_push(te->children, multiplied);
 
@@ -86,7 +86,7 @@ TypedExpr to_typed(UntypedExpr ue) {
 
                 te->children = new_vec_with_capacity(2);
                 int size = type_size(t_rhs->type->ptr_to);
-                TypedExpr multiplied = to_typed(new_untyped_expr(
+                TypedExpr multiplied = to_typed_expr(new_untyped_expr(
                     EXP_MUL, u_lhs, new_untyped_expr_const_int(size), NULL));
                 vec_push(te->children, multiplied);
                 vec_push(te->children, t_rhs);
@@ -99,12 +99,17 @@ TypedExpr to_typed(UntypedExpr ue) {
 
         case EXP_SUB: {
             UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
-            TypedExpr t_lhs = to_typed(u_lhs);
+            TypedExpr t_lhs = to_typed_expr(u_lhs);
 
             UntypedExpr u_rhs = untyped_expr_get_child(ue, 1);
-            TypedExpr t_rhs = to_typed(u_rhs);
+            TypedExpr t_rhs = to_typed_expr(u_rhs);
 
             if (t_lhs->type->kind == TY_INT && t_rhs->type->kind == TY_INT) {
+                te->type = new_type_int();
+
+                te->children = new_vec_with_capacity(2);
+                vec_push(te->children, t_lhs);
+                vec_push(te->children, t_rhs);
                 return te;
 
             } else {
@@ -117,10 +122,10 @@ TypedExpr to_typed(UntypedExpr ue) {
         case EXP_NOT_EQUAL:
         case EXP_LESS: {
             UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
-            TypedExpr t_lhs = to_typed(u_lhs);
+            TypedExpr t_lhs = to_typed_expr(u_lhs);
 
             UntypedExpr u_rhs = untyped_expr_get_child(ue, 1);
-            TypedExpr t_rhs = to_typed(u_rhs);
+            TypedExpr t_rhs = to_typed_expr(u_rhs);
 
             if (!type_is_equal(t_lhs->type, t_rhs->type))
                 error("異なる型同士の大小は比較できません");
@@ -134,13 +139,13 @@ TypedExpr to_typed(UntypedExpr ue) {
 
         case EXP_ASSIGN: {
             UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
-            TypedExpr t_lhs = to_typed(u_lhs);
+            TypedExpr t_lhs = to_typed_expr(u_lhs);
 
             UntypedExpr u_rhs = untyped_expr_get_child(ue, 1);
-            TypedExpr t_rhs = to_typed(u_rhs);
+            TypedExpr t_rhs = to_typed_expr(u_rhs);
 
             if (!type_is_equal(t_lhs->type, t_rhs->type))
-                error("異なる型同士の大小は比較できません");
+                error("異なる型の変数には代入できません");
 
             te->type = t_lhs->type;
             te->children = new_vec_with_capacity(2);
@@ -150,16 +155,22 @@ TypedExpr to_typed(UntypedExpr ue) {
         }
 
         case EXP_CALL: {
-            te->type = ue->item->type;
+            te->type = ue->item->type->returning;
 
             Vec te_children = new_vec();
 
             for (int i = 0; i < ue->children->len; i++) {
-                vec_push(te_children, to_typed(untyped_expr_get_child(ue, i)));
+                vec_push(te_children,
+                         to_typed_expr(untyped_expr_get_child(ue, i)));
             }
             te->children = te_children;
 
             return te;
         }
     }
+}
+
+TypedExpr typed_expr_get_child(TypedExpr typed_expr, int index) {
+    assert(index < typed_expr->children->len);
+    return typed_expr->children->buf[index];
 }

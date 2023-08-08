@@ -18,9 +18,9 @@ static void print(int indent, char *fmt, ...) {
     va_end(ap);
 }
 
-static void gen_untyped_expr(UntypedExpr untyped_expr, int depth);
+static void gen_typed_expr(TypedExpr typed_expr, int depth);
 
-static void gen_address(UntypedExpr node, int depth) {
+static void gen_address(TypedExpr node, int depth) {
     int depth_initial = depth;
 
     switch (node->kind) {
@@ -33,7 +33,7 @@ static void gen_address(UntypedExpr node, int depth) {
 
         case EXP_DEREF:
             print(depth, "# gen_address: EXP_DEREF");
-            gen_untyped_expr(untyped_expr_get_child(node, 0), depth++);
+            gen_typed_expr(typed_expr_get_child(node, 0), depth++);
             break;
 
         default:
@@ -43,19 +43,18 @@ static void gen_address(UntypedExpr node, int depth) {
     if (depth != depth_initial + 1) error("gen_address: unreachable");
 }
 
-static void gen_untyped_expr(UntypedExpr untyped_expr, int depth) {
+static void gen_typed_expr(TypedExpr typed_expr, int depth) {
     int depth_initial = depth;
 
-    switch (untyped_expr->kind) {
+    switch (typed_expr->kind) {
         case EXP_CALL:
             print(depth, "# EXP_CALL");
 
-            if (untyped_expr->children->len > 6)
+            if (typed_expr->children->len > 6)
                 error("6 個以上の実引数には対応していません");
 
-            for (int i = untyped_expr->children->len - 1; i >= 0; i--) {
-                gen_untyped_expr(untyped_expr_get_child(untyped_expr, i),
-                                 depth++);
+            for (int i = typed_expr->children->len - 1; i >= 0; i--) {
+                gen_typed_expr(typed_expr_get_child(typed_expr, i), depth++);
 
                 switch (i) {
                     case 0:
@@ -79,16 +78,16 @@ static void gen_untyped_expr(UntypedExpr untyped_expr, int depth) {
                 }
             }
 
-            print(depth++, "push %d", untyped_expr->children->len);
+            print(depth++, "push %d", typed_expr->children->len);
             print(depth--, "pop rax");
 
             if (depth % 2 == 1) {
                 print(depth++, "add rsp, 8");
-                print(depth, "call %s", untyped_expr->item->name);
+                print(depth, "call %s", typed_expr->item->name);
                 print(depth--, "sub rsp, 8");
 
             } else {
-                print(depth, "call %s", untyped_expr->item->name);
+                print(depth, "call %s", typed_expr->item->name);
             }
 
             print(depth++, "push rax");
@@ -97,13 +96,13 @@ static void gen_untyped_expr(UntypedExpr untyped_expr, int depth) {
         case EXP_CONST_INT:
             print(depth, "# EXP_CONST_INT");
 
-            print(depth++, "push %d", untyped_expr->val_int);
+            print(depth++, "push %d", typed_expr->val_int);
             break;
 
         case EXP_LOCAL_VAR:
             print(depth, "# EXP_LOCAL_VAR");
 
-            gen_address(untyped_expr, depth++);
+            gen_address(typed_expr, depth++);
 
             print(depth--, "pop rax");
             print(depth, "mov rax, [rax]");
@@ -113,8 +112,8 @@ static void gen_untyped_expr(UntypedExpr untyped_expr, int depth) {
         case EXP_ASSIGN:
             print(depth, "# EXP_ASSIGN");
 
-            gen_address(untyped_expr_get_child(untyped_expr, 0), depth++);
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
+            gen_address(typed_expr_get_child(typed_expr, 0), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -126,14 +125,14 @@ static void gen_untyped_expr(UntypedExpr untyped_expr, int depth) {
         case EXP_ADDR:
             print(depth, "# EXP_ADDR");
 
-            gen_address(untyped_expr_get_child(untyped_expr, 0), depth++);
+            gen_address(typed_expr_get_child(typed_expr, 0), depth++);
 
             break;
 
         case EXP_DEREF:
             print(depth, "# EXP_DEREF");
 
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
 
             print(depth--, "pop rax");
             print(depth, "mov rax, [rax]");
@@ -143,8 +142,8 @@ static void gen_untyped_expr(UntypedExpr untyped_expr, int depth) {
         case EXP_ADD: {
             print(depth, "# EXP_ADD");
 
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -156,8 +155,8 @@ static void gen_untyped_expr(UntypedExpr untyped_expr, int depth) {
         case EXP_SUB:
             print(depth, "# EXP_SUB");
 
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -169,8 +168,8 @@ static void gen_untyped_expr(UntypedExpr untyped_expr, int depth) {
         case EXP_MUL:
             print(depth, "# EXP_MUL");
 
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -182,8 +181,8 @@ static void gen_untyped_expr(UntypedExpr untyped_expr, int depth) {
         case EXP_DIV:
             print(depth, "# EXP_DIV");
 
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -196,8 +195,8 @@ static void gen_untyped_expr(UntypedExpr untyped_expr, int depth) {
         case EXP_EQUAL:
             print(depth, "# EXP_EQUAL");
 
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -211,8 +210,8 @@ static void gen_untyped_expr(UntypedExpr untyped_expr, int depth) {
         case EXP_NOT_EQUAL:
             print(depth, "# EXP_NOT_EQUAL");
 
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -226,8 +225,8 @@ static void gen_untyped_expr(UntypedExpr untyped_expr, int depth) {
         case EXP_LESS:
             print(depth, "# EXP_LESS");
 
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -241,8 +240,8 @@ static void gen_untyped_expr(UntypedExpr untyped_expr, int depth) {
         case EXP_LESS_OR_EQUAL:
             print(depth, "# EXP_LESS_OR_EQUAL");
 
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 0), depth++);
-            gen_untyped_expr(untyped_expr_get_child(untyped_expr, 1), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
@@ -273,14 +272,14 @@ static void gen_stmt(Stmt stmt, int depth) {
 
         case STMT_ONLY_EXPR:
             print(depth, "# STMT_ONLY_EXPR");
-            gen_untyped_expr(stmt->untyped_expr, depth++);
+            gen_typed_expr(stmt_get_typed_expr_child(stmt, 0), depth++);
 
             break;
 
         case STMT_RETURN:
             print(depth, "# STMT_RETURN");
 
-            gen_untyped_expr(stmt->untyped_expr, depth++);
+            gen_typed_expr(stmt_get_typed_expr_child(stmt, 0), depth++);
 
             print(depth--, "pop rax");
             print(depth, "mov rsp, rbp");
@@ -294,7 +293,7 @@ static void gen_stmt(Stmt stmt, int depth) {
 
             print(depth, "# STMT_IF");
 
-            gen_untyped_expr(stmt_get_untyped_expr_child(stmt, 0), depth++);
+            gen_typed_expr(stmt_get_typed_expr_child(stmt, 0), depth++);
 
             print(depth--, "pop rax");
             print(depth, "cmp rax, 0");
@@ -312,7 +311,7 @@ static void gen_stmt(Stmt stmt, int depth) {
 
             print(depth, "# STMT_IF_ELSE");
 
-            gen_untyped_expr(stmt_get_untyped_expr_child(stmt, 0), depth++);
+            gen_typed_expr(stmt_get_typed_expr_child(stmt, 0), depth++);
 
             print(depth--, "pop rax");
             print(depth, "cmp rax, 0");
@@ -339,7 +338,7 @@ static void gen_stmt(Stmt stmt, int depth) {
 
             print(depth, ".Lbegin%08d:", id);
 
-            gen_untyped_expr(stmt_get_untyped_expr_child(stmt, 0), depth++);
+            gen_typed_expr(stmt_get_typed_expr_child(stmt, 0), depth++);
 
             print(depth--, "pop rax");
             print(depth, "cmp rax, 0");
@@ -359,12 +358,12 @@ static void gen_stmt(Stmt stmt, int depth) {
 
             print(depth, "# STMT_FOR");
 
-            gen_untyped_expr(stmt_get_untyped_expr_child(stmt, 0), depth++);
+            gen_typed_expr(stmt_get_typed_expr_child(stmt, 0), depth++);
 
             print(depth--, "pop rax");
             print(depth, ".Lbegin%08d:", id);
 
-            gen_untyped_expr(stmt_get_untyped_expr_child(stmt, 1), depth++);
+            gen_typed_expr(stmt_get_typed_expr_child(stmt, 1), depth++);
 
             print(depth--, "pop rax");
             print(depth, "cmp rax, 0");
@@ -374,7 +373,7 @@ static void gen_stmt(Stmt stmt, int depth) {
 
             print(depth--, "pop rax");
 
-            gen_untyped_expr(stmt_get_untyped_expr_child(stmt, 2), depth++);
+            gen_typed_expr(stmt_get_typed_expr_child(stmt, 2), depth++);
 
             print(depth--, "pop rax");
             print(depth, "jmp .Lbegin%08d", id);
@@ -413,7 +412,7 @@ static void gen_func(Stmt stmt) {
         error("7 個以上の仮引数には対応していません");
 
     for (int i = 0; i < stmt->untyped_expr_children->len; i++) {
-        gen_address(stmt_get_untyped_expr_child(stmt, i), depth++);
+        gen_address(stmt_get_typed_expr_child(stmt, i), depth++);
 
         print(depth--, "pop rax");
 
