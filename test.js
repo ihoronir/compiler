@@ -117,6 +117,4 @@ async function test(path) {
     };
 }
 
-
-//test('./test_todo');
-test('./test_working');
+test(Deno.args[0]);

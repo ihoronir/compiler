@@ -20,7 +20,10 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
 
 test: $(TARGET)
-	./test.js
+	./test.js ./test_working
+
+test_todo: $(TARGET)
+	./test.js ./test_todo
 
 clean:
 	rm -f $(TARGET) $(OBJDIR)/*.o
