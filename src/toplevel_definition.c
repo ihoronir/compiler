@@ -17,5 +17,7 @@ ToplevelDefinition new_toplevel_definition_global_var(Scope scope, Type type,
     ToplevelDefinition tld = checked_malloc(sizeof(*tld));
     tld->kind = TLD_GLOBAL_VAR_DEF;
     tld->item = scope_def_global_var(scope, type, name);
+    tld->untyped_expr_children = new_vec();
+    tld->stmt_children = new_vec();
     return tld;
 }
