@@ -420,57 +420,66 @@ static void gen_stmt(Stmt stmt, int depth) {
     }
 }
 
-static void gen_func(ToplevelDefinition tld) {
+static void gen_toplevel_definition(ToplevelDefinition tld) {
     int depth = 0;
 
-    print(depth++, "%s: # STMT_FUNC_DEFINITION", tld->item->name);
+    switch (tld->kind) {
+        case TLD_FUNC_DEF: {
+            print(depth++, "%s: # TOPLEVEL_DEFINITION", tld->item->name);
 
-    print(depth++, "push rbp");
+            print(depth++, "push rbp");
 
-    print(depth, "mov rbp, rsp");
+            print(depth, "mov rbp, rsp");
 
-    print(depth, "sub rsp, %d", tld->item->size);
-    depth += tld->item->size / 8;
+            print(depth, "sub rsp, %d", tld->item->size);
+            depth += tld->item->size / 8;
 
-    if (tld->untyped_expr_children->len > 6)
-        error("7 個以上の仮引数には対応していません");
+            if (tld->untyped_expr_children->len > 6)
+                error("7 個以上の仮引数には対応していません");
 
-    for (int i = 0; i < tld->untyped_expr_children->len; i++) {
-        gen_address(tld->typed_expr_children->buf[i], depth++);
+            for (int i = 0; i < tld->untyped_expr_children->len; i++) {
+                gen_address(tld->typed_expr_children->buf[i], depth++);
 
-        print(depth--, "pop rax");
+                print(depth--, "pop rax");
 
-        switch (i) {
-            case 0:
-                print(depth, "mov [rax], rdi");
-                break;
-            case 1:
-                print(depth, "mov [rax], rsi");
-                break;
-            case 2:
-                print(depth, "mov [rax], rdx");
-                break;
-            case 3:
-                print(depth, "mov [rax], rcx");
-                break;
-            case 4:
-                print(depth, "mov [rax], r8");
-                break;
-            case 5:
-                print(depth, "mov [rax], r9");
-                break;
+                switch (i) {
+                    case 0:
+                        print(depth, "mov [rax], rdi");
+                        break;
+                    case 1:
+                        print(depth, "mov [rax], rsi");
+                        break;
+                    case 2:
+                        print(depth, "mov [rax], rdx");
+                        break;
+                    case 3:
+                        print(depth, "mov [rax], rcx");
+                        break;
+                    case 4:
+                        print(depth, "mov [rax], r8");
+                        break;
+                    case 5:
+                        print(depth, "mov [rax], r9");
+                        break;
+                }
+            }
+
+            for (int i = 0; i < tld->stmt_children->len; i++) {
+                gen_stmt(tld->stmt_children->buf[i], depth++);
+                print(depth--, "pop rax");
+            }
+
+            print(depth, "mov rsp, rbp");
+            depth = 2;
+            print(depth--, "pop rbp");
+            print(depth, "ret");
+        } break;
+
+        case TLD_GLOBAL_VAR_DEF: {
+            print(depth++, "%s: # TOPLEVEL_DEFINITION", tld->item->name);
+            print(depth++, ".zero %d", type_size(tld->item->type));
         }
     }
-
-    for (int i = 0; i < tld->stmt_children->len; i++) {
-        gen_stmt(tld->stmt_children->buf[i], depth++);
-        print(depth--, "pop rax");
-    }
-
-    print(depth, "mov rsp, rbp");
-    depth = 2;
-    print(depth--, "pop rbp");
-    print(depth, "ret");
 }
 
 void gen_program(Vec /* <ToplevelDefinition> */ program, FILE *out_fp) {
@@ -482,6 +491,6 @@ void gen_program(Vec /* <ToplevelDefinition> */ program, FILE *out_fp) {
     for (int i = 0; i < program->len; i++) {
         fputc('\n', out);
         ToplevelDefinition child = program->buf[i];
-        gen_func(child);
+        gen_toplevel_definition(child);
     }
 }
