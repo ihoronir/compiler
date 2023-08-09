@@ -360,54 +360,60 @@ static ToplevelDefinition parse_toplevel_definition(Scope scope) {
         }
     }
 
-    tld =
-        new_toplevel_definition_func(scope, new_type_func(type), expect_ident(),
-                                     untyped_expr_children, stmt_children);
+    char *name = expect_ident();
 
-    Scope func_scope = new_scope_func(scope, tld->item);
+    if (consume(TK_LEFT_PAREN)) {
+        tld =
+            new_toplevel_definition_func(scope, new_type_func(type), name,
+                                         untyped_expr_children, stmt_children);
 
-    expect(TK_LEFT_PAREN);
-    if (!consume(TK_RIGHT_PAREN)) {
-        do {
-            expect(TK_INT);
+        Scope func_scope = new_scope_func(scope, tld->item);
 
-            UntypedExpr untyped_expr;
-            Type type = new_type_int();
+        if (!consume(TK_RIGHT_PAREN)) {
+            do {
+                expect(TK_INT);
 
-            for (;;) {
-                if (consume(TK_ASTERISK)) {
-                    type = new_type_ptr(type);
+                UntypedExpr untyped_expr;
+                Type type = new_type_int();
 
-                } else {
-                    untyped_expr = new_untyped_expr_local_var_with_def(
-                        func_scope, type, expect_ident());
-                    break;
+                for (;;) {
+                    if (consume(TK_ASTERISK)) {
+                        type = new_type_ptr(type);
+
+                    } else {
+                        untyped_expr = new_untyped_expr_local_var_with_def(
+                            func_scope, type, expect_ident());
+                        break;
+                    }
+                }
+
+                vec_push(untyped_expr_children, untyped_expr);
+
+            } while (consume(TK_COMMA));
+            expect(TK_RIGHT_PAREN);
+        }
+
+        if (consume(TK_LEFT_BRACE)) {
+            Vec func_block_children = new_vec();
+
+            while (!consume(TK_RIGHT_BRACE)) {
+                Stmt func_block_child = parse_stmt(func_scope);
+                if (func_block_child != NULL) {
+                    vec_push(func_block_children, func_block_child);
                 }
             }
 
-            vec_push(untyped_expr_children, untyped_expr);
+            vec_push(stmt_children, new_stmt_block(func_block_children));
 
-        } while (consume(TK_COMMA));
-        expect(TK_RIGHT_PAREN);
-    }
+            return tld;
 
-    if (consume(TK_LEFT_BRACE)) {
-        Vec func_block_children = new_vec();
-
-        while (!consume(TK_RIGHT_BRACE)) {
-            Stmt func_block_child = parse_stmt(func_scope);
-            if (func_block_child != NULL) {
-                vec_push(func_block_children, func_block_child);
-            }
+        } else {
+            expect(TK_SEMICOLON);
+            return NULL;
         }
 
-        vec_push(stmt_children, new_stmt_block(func_block_children));
-
-        return tld;
-
     } else {
-        expect(TK_SEMICOLON);
-        return NULL;
+        error("グローバル変数の宣言には未対応");
     }
 }
 
