@@ -80,7 +80,8 @@ typedef enum {
     EXP_NOT_EQUAL,      // [0] != [1]
     EXP_ASSIGN,         // [0] = [1]
     EXP_CALL,           // 関数呼び出し func_name([0], [1], [2], [3]),
-    EXP_SIZEOF          //
+    EXP_SIZEOF,         //
+    EXP_DECAY           //
 } ExprKind;
 
 typedef enum {

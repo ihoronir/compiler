@@ -48,9 +48,20 @@ static void gen_address(TypedExpr node, int depth) {
 static void gen_typed_expr(TypedExpr typed_expr, int depth) {
     int depth_initial = depth;
 
+    if (typed_expr->type->kind == TY_ARR) {
+        gen_address(typed_expr, depth);
+        return;
+    }
+
     switch (typed_expr->kind) {
         case EXP_SIZEOF:
             assert(0);
+
+        case EXP_DECAY:
+            print(depth, "# EXP_DECAY");
+
+            gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
+            break;
 
         case EXP_CALL:
             print(depth, "# EXP_CALL");

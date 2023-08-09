@@ -82,7 +82,9 @@ async function test(path) {
                 stderr: 'piped'
             })).spawn();
 
-            if ((await exec.status).code != parseInt(expected)) {
+            const code = (await exec.status).code;
+            if (code != parseInt(expected)) {
+                console.log({ name: entry.name, code, expected });
                 redirectToFile(exec.stderr, execLog);
                 return status.execErr;
             }

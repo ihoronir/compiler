@@ -1,9 +1,14 @@
 #include "compiler.h"
 
 TypedExpr decay_if_array(TypedExpr te) {
-    if (te->type->kind == TY_ARR) te->type->kind = TY_PTR;
+    if (te->type->kind != TY_ARR) return te;
 
-    return te;
+    TypedExpr new_te = checked_malloc(sizeof(*te));
+    new_te->children = new_vec_with_capacity(1);
+    vec_push(new_te->children, te);
+    new_te->type = new_type_ptr(te->type->ptr_to);
+    new_te->kind = EXP_DECAY;
+    return new_te;
 }
 
 TypedExpr to_typed_expr(UntypedExpr ue) {
@@ -12,6 +17,9 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
     te->item = ue->item;
 
     switch (ue->kind) {
+        case EXP_DECAY:
+            assert(0);
+
         case EXP_SIZEOF: {
             te->kind = EXP_CONST_INT;
 
