@@ -1,5 +1,11 @@
 #include "compiler.h"
 
+TypedExpr decay_if_array(TypedExpr te) {
+    if (te->type->kind == TY_ARR) te->type->kind = TY_PTR;
+
+    return te;
+}
+
 TypedExpr to_typed_expr(UntypedExpr ue) {
     TypedExpr te = checked_malloc(sizeof(*te));
     te->kind = ue->kind;
@@ -28,7 +34,7 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
 
         case EXP_DEREF: {
             UntypedExpr u_child = untyped_expr_get_child(ue, 0);
-            TypedExpr t_child = to_typed_expr(u_child);
+            TypedExpr t_child = decay_if_array(to_typed_expr(u_child));
             if (t_child->type->kind != TY_PTR)
                 error("ポインタではないものを Deref しました");
 
@@ -40,6 +46,7 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
 
         case EXP_ADDR: {
             UntypedExpr u_child = untyped_expr_get_child(ue, 0);
+            // decay_if_array しない！！
             TypedExpr t_child = to_typed_expr(u_child);
 
             te->type = new_type_ptr(t_child->type);
@@ -51,10 +58,10 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
         case EXP_DIV:
         case EXP_MUL: {
             UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
-            TypedExpr t_lhs = to_typed_expr(u_lhs);
+            TypedExpr t_lhs = decay_if_array(to_typed_expr(u_lhs));
 
             UntypedExpr u_rhs = untyped_expr_get_child(ue, 1);
-            TypedExpr t_rhs = to_typed_expr(u_rhs);
+            TypedExpr t_rhs = decay_if_array(to_typed_expr(u_rhs));
 
             if (t_lhs->type->kind != TY_INT || t_rhs->type->kind != TY_INT)
                 error("INT 同士でしか掛け算・割り算はできません");
@@ -68,10 +75,10 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
 
         case EXP_ADD: {
             UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
-            TypedExpr t_lhs = to_typed_expr(u_lhs);
+            TypedExpr t_lhs = decay_if_array(to_typed_expr(u_lhs));
 
             UntypedExpr u_rhs = untyped_expr_get_child(ue, 1);
-            TypedExpr t_rhs = to_typed_expr(u_rhs);
+            TypedExpr t_rhs = decay_if_array(to_typed_expr(u_rhs));
 
             if (t_lhs->type->kind == TY_INT && t_rhs->type->kind == TY_INT) {
                 te->type = new_type_int();
@@ -110,10 +117,10 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
 
         case EXP_SUB: {
             UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
-            TypedExpr t_lhs = to_typed_expr(u_lhs);
+            TypedExpr t_lhs = decay_if_array(to_typed_expr(u_lhs));
 
             UntypedExpr u_rhs = untyped_expr_get_child(ue, 1);
-            TypedExpr t_rhs = to_typed_expr(u_rhs);
+            TypedExpr t_rhs = decay_if_array(to_typed_expr(u_rhs));
 
             if (t_lhs->type->kind == TY_INT && t_rhs->type->kind == TY_INT) {
                 te->type = new_type_int();
@@ -133,10 +140,10 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
         case EXP_NOT_EQUAL:
         case EXP_LESS: {
             UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
-            TypedExpr t_lhs = to_typed_expr(u_lhs);
+            TypedExpr t_lhs = decay_if_array(to_typed_expr(u_lhs));
 
             UntypedExpr u_rhs = untyped_expr_get_child(ue, 1);
-            TypedExpr t_rhs = to_typed_expr(u_rhs);
+            TypedExpr t_rhs = decay_if_array(to_typed_expr(u_rhs));
 
             if (!type_is_equal(t_lhs->type, t_rhs->type))
                 error("異なる型同士の大小は比較できません");
@@ -151,9 +158,11 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
         case EXP_ASSIGN: {
             UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
             TypedExpr t_lhs = to_typed_expr(u_lhs);
+            if (t_lhs->type->kind == TY_ARR)
+                error("配列型には直接代入できません");
 
             UntypedExpr u_rhs = untyped_expr_get_child(ue, 1);
-            TypedExpr t_rhs = to_typed_expr(u_rhs);
+            TypedExpr t_rhs = decay_if_array(to_typed_expr(u_rhs));
 
             if (!type_is_equal(t_lhs->type, t_rhs->type))
                 error("異なる型の変数には代入できません");
@@ -166,19 +175,23 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
         }
 
         case EXP_CALL: {
+            if (ue->item->type->kind != TY_FUNC) error("関数以外は呼べません");
+
             te->type = ue->item->type->returning;
 
             Vec te_children = new_vec();
 
             for (int i = 0; i < ue->children->len; i++) {
-                vec_push(te_children,
-                         to_typed_expr(untyped_expr_get_child(ue, i)));
+                vec_push(te_children, decay_if_array(to_typed_expr(
+                                          untyped_expr_get_child(ue, i))));
             }
             te->children = te_children;
 
             return te;
         }
     }
+
+    assert(0);
 }
 
 TypedExpr typed_expr_get_child(TypedExpr typed_expr, int index) {

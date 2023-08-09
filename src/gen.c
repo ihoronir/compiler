@@ -1,3 +1,5 @@
+#include <assert.h>
+
 #include "compiler.h"
 
 static int gen_id() {
@@ -47,6 +49,9 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
     int depth_initial = depth;
 
     switch (typed_expr->kind) {
+        case EXP_SIZEOF:
+            assert(0);
+
         case EXP_CALL:
             print(depth, "# EXP_CALL");
 
