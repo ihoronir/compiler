@@ -160,6 +160,17 @@ typedef struct stmt {
     int val_int;  // kind が ND_CONST_INT の場合、その数値
 } *Stmt;
 
+typedef enum { TLD_FUNC_DEF } ToplevelDefinitionKind;
+
+// トップレベル定義
+typedef struct toplevel_definition {
+    ToplevelDefinitionKind kind;  // ノードの種類
+    Vec stmt_children;            // 子要素
+    Vec untyped_expr_children;    //
+    Vec typed_expr_children;      //
+    Item item;  // kind が ND_LOCAL_VAR, ND_CALL, ND_FUNC の場合、そのアイテム
+} *ToplevelDefinition;
+
 // スコープの型
 typedef struct scope {
     struct scope *parent;  // 親スコープ
