@@ -229,7 +229,6 @@ static UntypedExpr parse_expr(Scope scope) { return parse_assign(scope); }
 //      | "int" ident ";"
 //      | expr ";"
 static Stmt parse_stmt(Scope scope) {
-    // "int" ident ";"
     if (consume(TK_INT)) {
         Type type = new_type_int();
 
@@ -413,7 +412,13 @@ static ToplevelDefinition parse_toplevel_definition(Scope scope) {
         }
 
     } else {
-        error("グローバル変数の宣言には未対応");
+        if (consume(TK_LEFT_SQ_BRACKET)) {
+            int arr_len = expect_const_int();
+            type = new_type_arr(type, arr_len);
+            expect(TK_RIGHT_SQ_BRACKET);
+        }
+        expect(TK_SEMICOLON);
+        return new_toplevel_definition_global_var(type, name);
     }
 }
 

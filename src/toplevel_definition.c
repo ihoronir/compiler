@@ -12,6 +12,6 @@ ToplevelDefinition new_toplevel_definition_func(Scope scope, Type type,
     return tld;
 }
 
-ToplevelDefinition new_toplevel_definition_global_var() {
+ToplevelDefinition new_toplevel_definition_global_var(Type type, char *name) {
     error("まだ実装してない");
 }

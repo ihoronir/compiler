@@ -253,6 +253,8 @@ ToplevelDefinition new_toplevel_definition_func(Scope scope, Type type,
                                                 Vec untyped_expr_children,
                                                 Vec stmt_children);
 
+ToplevelDefinition new_toplevel_definition_global_var(Type type, char *name);
+
 // Stmt new_stmt(StmtKind kind, ...);
 Stmt new_stmt_only_expr(UntypedExpr untyped_expr);
 Stmt new_stmt_return(UntypedExpr untyped_expr);
