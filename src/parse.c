@@ -418,7 +418,7 @@ static ToplevelDefinition parse_toplevel_definition(Scope scope) {
             expect(TK_RIGHT_SQ_BRACKET);
         }
         expect(TK_SEMICOLON);
-        return new_toplevel_definition_global_var(type, name);
+        return new_toplevel_definition_global_var(scope, type, name);
     }
 }
 

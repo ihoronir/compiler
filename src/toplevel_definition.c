@@ -12,6 +12,10 @@ ToplevelDefinition new_toplevel_definition_func(Scope scope, Type type,
     return tld;
 }
 
-ToplevelDefinition new_toplevel_definition_global_var(Type type, char *name) {
-    error("まだ実装してない");
+ToplevelDefinition new_toplevel_definition_global_var(Scope scope, Type type,
+                                                      char *name) {
+    ToplevelDefinition tld = checked_malloc(sizeof(*tld));
+    tld->kind = TLD_GLOBAL_VAR_DEF;
+    tld->item = scope_def_global_var(scope, type, name);
+    return tld;
 }
