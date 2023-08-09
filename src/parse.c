@@ -343,27 +343,27 @@ static Stmt parse_stmt(Scope scope) {
 }
 
 // func = "int" ident "(" ("int" ident ",")* ")" "{" stmt* "}"
-Stmt parse_func_definition(Scope scope) {
+static ToplevelDefinition parse_func_definition(Scope scope) {
     expect(TK_INT);
 
     Type type = new_type_int();
     Vec untyped_expr_children = new_vec();
     Vec stmt_children = new_vec();
-    Stmt stmt;
+    ToplevelDefinition tld;
 
     for (;;) {
         if (consume(TK_ASTERISK)) {
             type = new_type_ptr(type);
 
         } else {
-            stmt = new_stmt_func_definition(
+            tld = new_toplevel_definition_func(
                 scope, new_type_func(type), expect_ident(),
                 untyped_expr_children, stmt_children);
             break;
         }
     }
 
-    Scope func_scope = new_scope_func(scope, stmt->item);
+    Scope func_scope = new_scope_func(scope, tld->item);
 
     expect(TK_LEFT_PAREN);
     if (!consume(TK_RIGHT_PAREN)) {
@@ -402,7 +402,7 @@ Stmt parse_func_definition(Scope scope) {
 
         vec_push(stmt_children, new_stmt_block(func_block_children));
 
-        return stmt;
+        return tld;
 
     } else {
         expect(TK_SEMICOLON);
@@ -411,14 +411,14 @@ Stmt parse_func_definition(Scope scope) {
 }
 
 // program = func*;
-Stmt parse_program() {
+Vec /* <ToplevelDefinition> */ parse_program() {
     Vec children = new_vec();
     Scope scope = new_scope_global();
 
     while (!consume(TK_EOF)) {
-        Stmt fn = parse_func_definition(scope);
+        ToplevelDefinition fn = parse_func_definition(scope);
         if (fn != NULL) vec_push(children, fn);
     }
 
-    return new_stmt_program(children);
+    return children;
 }

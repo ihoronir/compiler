@@ -63,12 +63,25 @@ int main(int argc, char **argv) {
     FILE *out_fp = fopen(argv[2], "w");
 
     // 解析木作成 -> コード生成
-    Stmt tree = parse_program();
+    Vec program = parse_program();
 
     // チェック
-    make_stmt_typed(tree);
+    for (int i = 0; i < program->len; i++) {
+        ToplevelDefinition tld = program->buf[i];
 
-    gen_program(tree, out_fp);
+        tld->typed_expr_children = new_vec();
+        for (int i = 0; i < tld->untyped_expr_children->len; i++) {
+            UntypedExpr untyped_child = tld->untyped_expr_children->buf[i];
+            vec_push(tld->typed_expr_children, to_typed_expr(untyped_child));
+        }
+
+        for (int i = 0; i < tld->stmt_children->len; i++) {
+            Stmt tld_child = tld->stmt_children->buf[i];
+            make_stmt_typed(tld_child);
+        }
+    }
+
+    gen_program(program, out_fp);
 
     fclose(out_fp);
     return EXIT_SUCCESS;

@@ -420,25 +420,23 @@ static void gen_stmt(Stmt stmt, int depth) {
     }
 }
 
-static void gen_func(Stmt stmt) {
-    assert(stmt->kind == STMT_FUNC_DEFINITION);
-
+static void gen_func(ToplevelDefinition tld) {
     int depth = 0;
 
-    print(depth++, "%s: # STMT_FUNC_DEFINITION", stmt->item->name);
+    print(depth++, "%s: # STMT_FUNC_DEFINITION", tld->item->name);
 
     print(depth++, "push rbp");
 
     print(depth, "mov rbp, rsp");
 
-    print(depth, "sub rsp, %d", stmt->item->size);
-    depth += stmt->item->size / 8;
+    print(depth, "sub rsp, %d", tld->item->size);
+    depth += tld->item->size / 8;
 
-    if (stmt->untyped_expr_children->len > 6)
+    if (tld->untyped_expr_children->len > 6)
         error("7 個以上の仮引数には対応していません");
 
-    for (int i = 0; i < stmt->untyped_expr_children->len; i++) {
-        gen_address(stmt_get_typed_expr_child(stmt, i), depth++);
+    for (int i = 0; i < tld->untyped_expr_children->len; i++) {
+        gen_address(tld->typed_expr_children->buf[i], depth++);
 
         print(depth--, "pop rax");
 
@@ -464,8 +462,8 @@ static void gen_func(Stmt stmt) {
         }
     }
 
-    for (int i = 0; i < stmt->stmt_children->len; i++) {
-        gen_stmt(stmt_get_stmt_child(stmt, i), depth++);
+    for (int i = 0; i < tld->stmt_children->len; i++) {
+        gen_stmt(tld->stmt_children->buf[i], depth++);
         print(depth--, "pop rax");
     }
 
@@ -475,17 +473,15 @@ static void gen_func(Stmt stmt) {
     print(depth, "ret");
 }
 
-void gen_program(Stmt stmt, FILE *out_fp) {
+void gen_program(Vec /* <ToplevelDefinition> */ program, FILE *out_fp) {
     out = out_fp;
-    assert(stmt->kind == STMT_PROGRAM);
 
     print(0, ".intel_syntax noprefix");
     print(0, ".globl main");
 
-    for (int i = 0; i < stmt->stmt_children->len; i++) {
+    for (int i = 0; i < program->len; i++) {
         fputc('\n', out);
-        Stmt child = stmt_get_stmt_child(stmt, i);
-        assert(child->kind == STMT_FUNC_DEFINITION);
+        ToplevelDefinition child = program->buf[i];
         gen_func(child);
     }
 }

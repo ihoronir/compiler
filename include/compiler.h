@@ -248,13 +248,17 @@ UntypedExpr new_untyped_expr_local_var_with_def(Scope scope, Type type,
 UntypedExpr new_untyped_expr_call(Vec children);
 UntypedExpr untyped_expr_get_child(UntypedExpr untyped_expr, int index);
 
+ToplevelDefinition new_toplevel_definition_func(Scope scope, Type type,
+                                                char *name,
+                                                Vec untyped_expr_children,
+                                                Vec stmt_children);
+
 // Stmt new_stmt(StmtKind kind, ...);
 Stmt new_stmt_only_expr(UntypedExpr untyped_expr);
 Stmt new_stmt_return(UntypedExpr untyped_expr);
 Stmt new_stmt_func_definition(Scope scope, Type type, char *name,
                               Vec untyped_expr_children, Vec stmt_children);
 Stmt new_stmt_block(Vec stmt_children);
-Stmt new_stmt_program(Vec stmt_children);
 
 Stmt new_stmt_if(UntypedExpr cond, Stmt then_stmt);
 Stmt new_stmt_if_else(UntypedExpr cond, Stmt then_stmt, Stmt else_stmt);
@@ -271,13 +275,13 @@ TypedExpr to_typed_expr(UntypedExpr ue);
 TypedExpr typed_expr_get_child(TypedExpr typed_expr, int index);
 
 // parse.c
-Stmt parse_program();
+Vec /* <ToplevelDefinition> */ parse_program();
 
 // check.c
 void make_stmt_typed(Stmt stmt);
 
 // gen.c
-void gen_program(Stmt node, FILE *fp);
+void gen_program(Vec /* <ToplevelDefinition> */ program, FILE *out_fp);
 
 // vec.c
 Vec new_vec_with_capacity(int capacity);

@@ -20,30 +20,12 @@ Stmt new_stmt_return(UntypedExpr untyped_expr) {
     return stmt;
 }
 
-Stmt new_stmt_func_definition(Scope scope, Type type, char *name,
-                              Vec untyped_expr_children, Vec stmt_children) {
-    Stmt stmt = checked_malloc(sizeof(*stmt));
-    stmt->kind = STMT_FUNC_DEFINITION;
-    stmt->untyped_expr_children = untyped_expr_children;
-    stmt->stmt_children = stmt_children;
-    stmt->item = scope_def_func(scope, type, name);
-    return stmt;
-}
-
 Stmt new_stmt_block(Vec stmt_children);
 
 Stmt new_stmt_block(Vec children) {
     Stmt stmt = checked_malloc(sizeof(*stmt));
     stmt->kind = STMT_BLOCK;
     stmt->stmt_children = children;
-    stmt->untyped_expr_children = new_vec();
-    return stmt;
-}
-
-Stmt new_stmt_program(Vec stmt_children) {
-    Stmt stmt = checked_malloc(sizeof(*stmt));
-    stmt->kind = STMT_PROGRAM;
-    stmt->stmt_children = stmt_children;
     stmt->untyped_expr_children = new_vec();
     return stmt;
 }
