@@ -218,11 +218,11 @@ static Stmt parse_stmt(Scope scope) {
                 char *name = expect_ident();
 
                 if (consume(TK_LEFT_SQ_BRACKET)) {
-                    error("配列はまだパースできません");
-                } else {
-                    scope_def_local_var(scope, type, name);
+                    int arr_len = expect_const_int();
+                    type = new_type_arr(type, arr_len);
+                    expect(TK_RIGHT_SQ_BRACKET);
                 }
-
+                scope_def_local_var(scope, type, name);
                 break;
             }
         }

@@ -24,6 +24,14 @@ Type new_type_ptr(Type ptr_to) {
     return type;
 }
 
+Type new_type_arr(Type arr_of, int arr_len) {
+    Type type = checked_malloc(sizeof(*type));
+    type->kind = TY_ARR;
+    type->ptr_to = arr_of;
+    type->arr_len = arr_len;
+    return type;
+}
+
 Type new_type_func(Type returning) {
     Type type = checked_malloc(sizeof(*type));
     type->kind = TY_FUNC;

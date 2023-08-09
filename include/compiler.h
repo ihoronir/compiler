@@ -187,6 +187,7 @@ void tokenize(char *p);
 // type.c
 int type_size(Type type);
 Type new_type_int();
+Type new_type_arr(Type arr_of, int arr_len);
 Type new_type_ptr(Type ptr_to);
 Type new_type_func(Type returning);
 int type_is_equal(Type type1, Type type2);
