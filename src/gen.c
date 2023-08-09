@@ -1,5 +1,3 @@
-#include <assert.h>
-
 #include "compiler.h"
 
 static int gen_id() {
@@ -59,7 +57,6 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
 
         case EXP_DECAY:
             print(depth, "# EXP_DECAY");
-
             gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
             break;
 
@@ -121,20 +118,24 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             gen_address(typed_expr, depth++);
 
             print(depth--, "pop rax");
-            print(depth, "mov rax, [rax]");
+            print(depth, "mov %s, [rax]",
+                  type_reg_name(REG_RAX, typed_expr->type));
             print(depth++, "push rax");
             break;
 
         case EXP_ASSIGN:
             print(depth, "# EXP_ASSIGN");
 
-            gen_address(typed_expr_get_child(typed_expr, 0), depth++);
-            gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
+            TypedExpr dst = typed_expr_get_child(typed_expr, 0);
+            TypedExpr src = typed_expr_get_child(typed_expr, 1);
+            gen_address(dst, depth++);
+            gen_typed_expr(src, depth++);
+
+            char *src_reg_name = type_reg_name(REG_RDI, dst->type);
 
             print(depth--, "pop rdi");
             print(depth--, "pop rax");
-            // print(depth, "QWORD PTR mov [rax], rdi");
-            print(depth, "mov [rax], rdi");
+            print(depth, "mov [rax], %s", src_reg_name);
             print(depth++, "push rdi");
             break;
 

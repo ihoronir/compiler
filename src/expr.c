@@ -1,5 +1,7 @@
 #include "compiler.h"
 
+// te->type が TY_ARR ならば、その te を子供に持つ EXP_DECAY を作る
+// その EXP_DECAY は TY_PTR である
 TypedExpr decay_if_array(TypedExpr te) {
     if (te->type->kind != TY_ARR) return te;
 

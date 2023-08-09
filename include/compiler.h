@@ -108,6 +108,25 @@ typedef struct untyped_expr {
     int val_int;
 } *UntypedExpr;
 
+typedef enum {
+    REG_RAX = 0,
+    REG_RDI = 1,
+    REG_RSI = 2,
+    REG_RDX = 3,
+    REG_RCX = 4,
+    REG_RBP = 5,
+    REG_RSP = 6,
+    REG_RBX = 7,
+    REG_R8 = 8,
+    REG_R9 = 9,
+    REG_R10 = 10,
+    REG_R11 = 11,
+    REG_R12 = 12,
+    REG_R13 = 13,
+    REG_R14 = 14,
+    REG_R15 = 15
+} RegKind;
+
 // 型の種類
 typedef enum { TY_INT, TY_FUNC, TY_ARR, TY_PTR } TypeKind;
 
@@ -187,11 +206,13 @@ void tokenize(char *p);
 
 // type.c
 int type_size(Type type);
+char *type_reg(Type type);
 Type new_type_int();
 Type new_type_arr(Type arr_of, int arr_len);
 Type new_type_ptr(Type ptr_to);
 Type new_type_func(Type returning);
 int type_is_equal(Type type1, Type type2);
+char *type_reg_name(RegKind reg_kind, Type type);
 
 // scope.c
 Scope new_scope_global();

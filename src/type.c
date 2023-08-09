@@ -1,5 +1,31 @@
 #include "compiler.h"
 
+char *reg[16][4] = {
+    {"al", "ax", "eax", "rax"},      {"dil", "di", "edi", "rdi"},
+    {"sil", "si", "esi", "rsi"},     {"dl", "dx", "edx", "rdx"},
+    {"cl", "cx", "ecx", "rcx"},      {"bpl", "bp", "ebp", "rbp"},
+    {"spl", "sp", "esp", "rsp"},     {"bl", "bx", "ebx", "rbx"},
+    {"r8b", "r8w", "r8d", "r8"},     {"r9b", "r9w", "r9d", "r9"},
+    {"r10b", "r10w", "r10d", "r10"}, {"r11b", "r11w", "r11d", "r11"},
+    {"r12b", "r12w", "r12d", "r12"}, {"r13b", "r13w", "r13d", "r13"},
+    {"r14b", "r14w", "r14d", "r14"}, {"r15b", "r15w", "r15d", "r15"},
+};
+
+char *reg_name(int reg_kind, int size) {
+    switch (size) {
+        case 1:
+            return reg[reg_kind][0];
+        case 2:
+            return reg[reg_kind][1];
+        case 4:
+            return reg[reg_kind][2];
+        case 8:
+            return reg[reg_kind][3];
+        default:
+            error("非対応のデータサイズです");
+    }
+}
+
 int type_size(Type type) {
     switch (type->kind) {
         case TY_INT:
@@ -11,6 +37,10 @@ int type_size(Type type) {
         default:
             error("unimplemented");
     }
+}
+
+char *type_reg_name(RegKind reg_kind, Type type) {
+    return reg_name(reg_kind, type_size(type));
 }
 
 Type new_type_int() {
