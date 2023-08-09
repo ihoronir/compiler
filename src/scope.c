@@ -26,6 +26,7 @@ Scope new_scope(Scope parent) {
     return scope;
 }
 
+// 現在のスコープからのみ検索
 static Item get_item(Scope scope, char *name) {
     for (int i = 0; i < scope->items->len; i++) {
         Item item = scope->items->buf[i];
@@ -34,13 +35,13 @@ static Item get_item(Scope scope, char *name) {
     return NULL;
 }
 
-Item scope_get_item(ItemKind kind, Scope scope, char *name) {
+// 親スコープも含めて検索
+Item scope_get_item(Scope scope, char *name) {
     Item item = get_item(scope, name);
     if (item == NULL) {
         if (scope->parent == NULL) error("未定義の変数です");
-        return scope_get_item(kind, scope->parent, name);
+        return scope_get_item(scope->parent, name);
     }
-    if (item->kind != kind) error("期待された種類のアイテムではありません");
     return item;
 }
 

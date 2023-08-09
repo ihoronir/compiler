@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include "compiler.h"
 
 static int consume(TokenKind tk) {
@@ -43,9 +41,9 @@ static int expect_const_int() {
 
 static UntypedExpr parse_expr(Scope scope);
 
-// primary = num
-//         | ident ("(" ")")?
-//         | "(" expr ")"
+// primary = "(" expr ")"
+//         | ident
+//         | num
 static UntypedExpr parse_primary(Scope scope) {
     if (consume(TK_LEFT_PAREN)) {
         UntypedExpr untyped_node = parse_expr(scope);
@@ -55,20 +53,7 @@ static UntypedExpr parse_primary(Scope scope) {
 
     char *name;
     if ((name = consume_ident()) != NULL) {
-        if (consume(TK_LEFT_PAREN)) {
-            Vec children = new_vec();
-
-            if (!consume(TK_RIGHT_PAREN)) {
-                do {
-                    vec_push(children, parse_expr(scope));
-                } while (consume(TK_COMMA));
-                expect(TK_RIGHT_PAREN);
-            }
-
-            return new_untyped_expr_call(scope, name, children);
-        }
-
-        return new_untyped_expr_local_var(scope, name);
+        return new_untyped_expr_local_var_or_func(scope, name);
     }
 
     // そうでなければ数値のはず
@@ -76,17 +61,55 @@ static UntypedExpr parse_primary(Scope scope) {
     return untyped_node;
 }
 
-// unary = "sizeof" unary | ("+" | "-")? primary
+// postfix = primary ( "[" expr "]" |  "(" expr, expr, ... ")" )*
+static UntypedExpr parse_postfix(Scope scope) {
+    UntypedExpr untyped_expr = parse_primary(scope);
+
+    for (;;) {
+        if (consume(TK_LEFT_SQ_BRACKET)) {
+            UntypedExpr index = parse_expr(scope);
+            expect(TK_RIGHT_SQ_BRACKET);
+
+            UntypedExpr add =
+                new_untyped_expr(EXP_ADD, untyped_expr, index, NULL);
+
+            UntypedExpr deref = new_untyped_expr(EXP_DEREF, add, NULL);
+
+            untyped_expr = deref;
+
+        } else if (consume(TK_LEFT_PAREN)) {
+            Vec children = new_vec();
+            vec_push(children, untyped_expr);
+
+            if (!consume(TK_RIGHT_PAREN)) {
+                do {
+                    vec_push(children, parse_expr(scope));
+                } while (consume(TK_COMMA));
+
+                expect(TK_RIGHT_PAREN);
+            }
+
+            untyped_expr = new_untyped_expr_call(children);
+
+        } else {
+            return untyped_expr;
+        }
+    }
+}
+
+// unary = "sizeof" unary
+//       | ("+" | "-" | "*" | "&" )? unary
+//       | postfix
 static UntypedExpr parse_unary(Scope scope) {
     if (consume(TK_SIZEOF)) {
         return new_untyped_expr(EXP_SIZEOF, parse_unary(scope), NULL);
 
     } else if (consume(TK_PLUS)) {
-        return parse_primary(scope);
+        return parse_unary(scope);
 
     } else if (consume(TK_MINUS)) {
         return new_untyped_expr(EXP_SUB, new_untyped_expr_const_int(0),
-                                parse_primary(scope), NULL);
+                                parse_unary(scope), NULL);
 
     } else if (consume(TK_ASTERISK)) {
         return new_untyped_expr(EXP_DEREF, parse_unary(scope), NULL);
@@ -95,7 +118,7 @@ static UntypedExpr parse_unary(Scope scope) {
         return new_untyped_expr(EXP_ADDR, parse_unary(scope), NULL);
     }
 
-    return parse_primary(scope);
+    return parse_postfix(scope);
 }
 
 // mul = unary ("*" unary | "/" unary)*
@@ -196,7 +219,7 @@ static UntypedExpr parse_assign(Scope scope) {
 // expr = assign
 static UntypedExpr parse_expr(Scope scope) { return parse_assign(scope); }
 
-// stmt = "int" ( "*" )* ident ("[" const_int ""]")? ";")
+// stmt = "int" ( "*" )* ident ("[" const_int "]")? ";")
 //      | ";"
 //      | "{" stmt* "}"
 //      | "if" "(" expr ")" stmt ("else" stmt)?

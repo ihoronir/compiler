@@ -8,6 +8,7 @@ let allSuccess = true;
 async function test(path) {
     const status = Object.freeze({
         compileErr: 'Compile Error',
+        compilerSegV: 'Compile SegFault',
         linkErr: 'Link Error',
         execErr: 'Exec Error',
         success: 'Success',
@@ -53,8 +54,14 @@ async function test(path) {
                 args: [src, asm], stderr: 'piped'
             })).spawn();
 
-            if (!(await compile.status).success) {
+            const compileStatus = (await compile.status);
+
+            if (!compileStatus.success) {
+                console.log({ reason: 'compile error', name: entry.name, compileStatus: compileStatus.code });
                 redirectToFile(compile.stderr, compileLog);
+                if (compileStatus.code == 139) {
+                    return status.compilerSegV;
+                }
                 return status.compileErr;
             } 
 
@@ -105,6 +112,12 @@ async function test(path) {
 
             case status.compileErr:
                 console.log(no, '\u001b[33m' + result + '\u001b[0m');
+                //await Deno.rename("./test/" + name, "./test_todo/" + name);
+                allSuccess = false;
+                break;
+
+            case status.compilerSegV:
+                console.log(no, '\u001b[35m' + result + '\u001b[0m');
                 //await Deno.rename("./test/" + name, "./test_todo/" + name);
                 allSuccess = false;
                 break;

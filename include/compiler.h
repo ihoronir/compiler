@@ -68,6 +68,7 @@ typedef struct token {
 typedef enum {
     EXP_CONST_INT,      // 定数
     EXP_LOCAL_VAR,      // ローカル変数
+    EXP_FUNC,           //
     EXP_DEREF,          // *[0]
     EXP_ADDR,           // &[0]
     EXP_MUL,            // [0] * [1]
@@ -79,9 +80,9 @@ typedef enum {
     EXP_EQUAL,          // [0] == [1]
     EXP_NOT_EQUAL,      // [0] != [1]
     EXP_ASSIGN,         // [0] = [1]
-    EXP_CALL,           // 関数呼び出し func_name([0], [1], [2], [3]),
+    EXP_CALL,           // 関数呼び出し [0] ([1], [2], [3]),
     EXP_SIZEOF,         //
-    EXP_DECAY           //
+    EXP_DECAY,          //
 } ExprKind;
 
 typedef enum {
@@ -218,7 +219,7 @@ char *type_reg_name(RegKind reg_kind, Type type);
 Scope new_scope_global();
 Scope new_scope_func(Scope parent, Item item);
 Scope new_scope(Scope parent);
-Item scope_get_item(ItemKind kind, Scope scope, char *name);
+Item scope_get_item(Scope scope, char *name);
 Item scope_def_func(Scope scope, Type type, char *name);
 Item scope_def_local_var(Scope scope, Type type, char *name);
 
@@ -229,10 +230,11 @@ Item new_item_func(Type type, char *name);
 // expr.c
 UntypedExpr new_untyped_expr(ExprKind kind, ...);
 UntypedExpr new_untyped_expr_const_int(int val_int);
-UntypedExpr new_untyped_expr_local_var(Scope scope, char *name);
+// UntypedExpr new_untyped_expr_local_var(Scope scope, char *name);
+UntypedExpr new_untyped_expr_local_var_or_func(Scope scope, char *name);
 UntypedExpr new_untyped_expr_local_var_with_def(Scope scope, Type type,
                                                 char *name);
-UntypedExpr new_untyped_expr_call(Scope scope, char *name, Vec children);
+UntypedExpr new_untyped_expr_call(Vec children);
 UntypedExpr untyped_expr_get_child(UntypedExpr untyped_expr, int index);
 
 // Stmt new_stmt(StmtKind kind, ...);

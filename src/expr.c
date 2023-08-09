@@ -38,6 +38,7 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
             te->type = new_type_int();
             return te;
 
+        case EXP_FUNC:
         case EXP_LOCAL_VAR:
             te->type = ue->item->type;
             return te;
@@ -185,13 +186,17 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
         }
 
         case EXP_CALL: {
-            if (ue->item->type->kind != TY_FUNC) error("関数以外は呼べません");
+            UntypedExpr func = untyped_expr_get_child(ue, 0);
+            if (func->item->type->kind != TY_FUNC)
+                error("関数以外は呼べません");
 
-            te->type = ue->item->type->returning;
+            te->type = func->item->type->returning;
 
             Vec te_children = new_vec();
 
-            for (int i = 0; i < ue->children->len; i++) {
+            vec_push(te_children, to_typed_expr(func));
+
+            for (int i = 1; i < ue->children->len; i++) {
                 vec_push(te_children, decay_if_array(to_typed_expr(
                                           untyped_expr_get_child(ue, i))));
             }

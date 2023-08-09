@@ -5,6 +5,7 @@ static int children_num(ExprKind kind) {
         // 終端記号
         case EXP_CONST_INT:
         case EXP_LOCAL_VAR:
+        case EXP_FUNC:
             return 0;
 
         // 非終端記号（子の個数が固定）
@@ -64,10 +65,35 @@ UntypedExpr new_untyped_expr_const_int(int val_int) {
     return untyped_expr;
 }
 
-UntypedExpr new_untyped_expr_local_var(Scope scope, char *name) {
+UntypedExpr new_untyped_expr_local_var_or_func(Scope scope, char *name) {
     UntypedExpr untyped_expr = checked_malloc(sizeof(*untyped_expr));
-    untyped_expr->kind = EXP_LOCAL_VAR;
-    untyped_expr->item = scope_get_item(IT_LOCAL_VAR, scope, name);
+    untyped_expr->item = scope_get_item(scope, name);
+    switch (untyped_expr->item->kind) {
+        case IT_FUNC:
+            untyped_expr->kind = EXP_FUNC;
+            break;
+
+        case IT_LOCAL_VAR:
+            untyped_expr->kind = EXP_LOCAL_VAR;
+            break;
+
+        default:
+            error("unimplemented: new_untyped_expr_identifier");
+    }
+    return untyped_expr;
+}
+
+// UntypedExpr new_untyped_expr_local_var(Scope scope, char *name) {
+//     UntypedExpr untyped_expr = checked_malloc(sizeof(*untyped_expr));
+//     untyped_expr->kind = EXP_LOCAL_VAR;
+//     untyped_expr->item = scope_get_item(scope, name);
+//     return untyped_expr;
+// }
+
+UntypedExpr new_untyped_expr_call(Vec children) {
+    UntypedExpr untyped_expr = checked_malloc(sizeof(*untyped_expr));
+    untyped_expr->kind = EXP_CALL;
+    untyped_expr->children = children;
     return untyped_expr;
 }
 
@@ -76,14 +102,6 @@ UntypedExpr new_untyped_expr_local_var_with_def(Scope scope, Type type,
     UntypedExpr untyped_expr = checked_malloc(sizeof(*untyped_expr));
     untyped_expr->kind = EXP_LOCAL_VAR;
     untyped_expr->item = scope_def_local_var(scope, type, name);
-    return untyped_expr;
-}
-
-UntypedExpr new_untyped_expr_call(Scope scope, char *name, Vec children) {
-    UntypedExpr untyped_expr = checked_malloc(sizeof(*untyped_expr));
-    untyped_expr->kind = EXP_CALL;
-    untyped_expr->children = children;
-    untyped_expr->item = scope_get_item(IT_FUNC, scope, name);
     return untyped_expr;
 }
 

@@ -1,3 +1,5 @@
+#include <assert.h>
+
 #include "compiler.h"
 
 static int gen_id() {
@@ -55,6 +57,9 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
         case EXP_SIZEOF:
             assert(0);
 
+        case EXP_FUNC:
+            error("関数名を値としてはつかえません");
+
         case EXP_DECAY:
             print(depth, "# EXP_DECAY");
             gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
@@ -63,29 +68,29 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
         case EXP_CALL:
             print(depth, "# EXP_CALL");
 
-            if (typed_expr->children->len > 6)
+            if (typed_expr->children->len > 7)
                 error("6 個以上の実引数には対応していません");
 
-            for (int i = typed_expr->children->len - 1; i >= 0; i--) {
+            for (int i = typed_expr->children->len - 1; i >= 1; i--) {
                 gen_typed_expr(typed_expr_get_child(typed_expr, i), depth++);
 
                 switch (i) {
-                    case 0:
+                    case 1:
                         print(depth--, "pop rdi");
                         break;
-                    case 1:
+                    case 2:
                         print(depth--, "pop rsi");
                         break;
-                    case 2:
+                    case 3:
                         print(depth--, "pop rdx");
                         break;
-                    case 3:
+                    case 4:
                         print(depth--, "pop rcx");
                         break;
-                    case 4:
+                    case 5:
                         print(depth--, "pop r8");
                         break;
-                    case 5:
+                    case 6:
                         print(depth--, "pop r9");
                         break;
                 }
@@ -94,13 +99,17 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             print(depth++, "push %d", typed_expr->children->len);
             print(depth--, "pop rax");
 
+            TypedExpr func = typed_expr_get_child(typed_expr, 0);
+            assert(func->kind == EXP_FUNC);
+            char *name = func->item->name;
+
             if (depth % 2 == 1) {
                 print(depth++, "add rsp, 8");
-                print(depth, "call %s", typed_expr->item->name);
+                print(depth, "call %s", name);
                 print(depth--, "sub rsp, 8");
 
             } else {
-                print(depth, "call %s", typed_expr->item->name);
+                print(depth, "call %s", name);
             }
 
             print(depth++, "push rax");
