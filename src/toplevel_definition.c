@@ -11,3 +11,7 @@ ToplevelDefinition new_toplevel_definition_func(Scope scope, Type type,
     tld->item = scope_def_func(scope, type, name);
     return tld;
 }
+
+ToplevelDefinition new_toplevel_definition_global_var() {
+    error("まだ実装してない");
+}

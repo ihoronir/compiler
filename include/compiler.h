@@ -168,7 +168,7 @@ typedef struct toplevel_definition {
     Vec stmt_children;            // 子要素
     Vec untyped_expr_children;    //
     Vec typed_expr_children;      //
-    Item item;  // kind が ND_LOCAL_VAR, ND_CALL, ND_FUNC の場合、そのアイテム
+    Item item;
 } *ToplevelDefinition;
 
 // スコープの型

@@ -343,7 +343,7 @@ static Stmt parse_stmt(Scope scope) {
 }
 
 // func = "int" ident "(" ("int" ident ",")* ")" "{" stmt* "}"
-static ToplevelDefinition parse_func_definition(Scope scope) {
+static ToplevelDefinition parse_toplevel_definition(Scope scope) {
     expect(TK_INT);
 
     Type type = new_type_int();
@@ -356,12 +356,13 @@ static ToplevelDefinition parse_func_definition(Scope scope) {
             type = new_type_ptr(type);
 
         } else {
-            tld = new_toplevel_definition_func(
-                scope, new_type_func(type), expect_ident(),
-                untyped_expr_children, stmt_children);
             break;
         }
     }
+
+    tld =
+        new_toplevel_definition_func(scope, new_type_func(type), expect_ident(),
+                                     untyped_expr_children, stmt_children);
 
     Scope func_scope = new_scope_func(scope, tld->item);
 
@@ -416,7 +417,7 @@ Vec /* <ToplevelDefinition> */ parse_program() {
     Scope scope = new_scope_global();
 
     while (!consume(TK_EOF)) {
-        ToplevelDefinition fn = parse_func_definition(scope);
+        ToplevelDefinition fn = parse_toplevel_definition(scope);
         if (fn != NULL) vec_push(children, fn);
     }
 
