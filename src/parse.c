@@ -196,8 +196,7 @@ static UntypedExpr parse_assign(Scope scope) {
 // expr = assign
 static UntypedExpr parse_expr(Scope scope) { return parse_assign(scope); }
 
-// stmt = "int" ( "*" )* ident ";"
-//      | "int" ident ";"
+// stmt = "int" ( "*" )* ident ("[" const_int ""]")? ";")
 //      | ";"
 //      | "{" stmt* "}"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
@@ -216,7 +215,14 @@ static Stmt parse_stmt(Scope scope) {
                 type = new_type_ptr(type);
 
             } else {
-                scope_def_local_var(scope, type, expect_ident());
+                char *name = expect_ident();
+
+                if (consume(TK_LEFT_SQ_BRACKET)) {
+                    error("配列はまだパースできません");
+                } else {
+                    scope_def_local_var(scope, type, name);
+                }
+
                 break;
             }
         }

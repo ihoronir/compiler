@@ -143,6 +143,14 @@ void tokenize(char *p) {
                 tokens_push(TK_RIGHT_BRACE, line, row);
                 p++;
                 continue;
+            case '[':
+                tokens_push(TK_LEFT_SQ_BRACKET, line, row);
+                p++;
+                continue;
+            case ']':
+                tokens_push(TK_RIGHT_SQ_BRACKET, line, row);
+                p++;
+                continue;
             case '<':
                 tokens_push(TK_LESS, line, row);
                 p++;

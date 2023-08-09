@@ -24,34 +24,36 @@ typedef struct string {
 
 // トークンの種類
 typedef enum {
-    TK_RETURN,       // "return"
-    TK_IF,           // "if"
-    TK_ELSE,         // "else"
-    TK_WHILE,        // "while"
-    TK_FOR,          // "for"
-    TK_INT,          // "int"
-    TK_CONST_INT,    // "10" などの整数
-    TK_IDENT,        // "a" などの識別子
-    TK_SEMICOLON,    // ";"
-    TK_COMMA,        // ","
-    TK_EQUAL,        // "="
-    TK_AND,          // "&"
-    TK_LEFT_PAREN,   // "("
-    TK_RIGHT_PAREN,  // ")"
-    TK_LEFT_BRACE,   // "{"
-    TK_RIGHT_BRACE,  // "}"
-    TK_PLUS,         // "+"
-    TK_MINUS,        // "-"
-    TK_ASTERISK,     // "*"
-    TK_SLASH,        // "/"
-    TK_LESS,         // "<"
-    TK_MORE,         // ">"
-    TK_LESS_EQUAL,   // "<="
-    TK_MORE_EQUAL,   // ">="
-    TK_EQUAL_EQUAL,  // "=="
-    TK_EXCL_EQUAL,   // "!="
-    TK_SIZEOF,       // "sizeof"
-    TK_EOF,          // EOF
+    TK_RETURN,            // "return"
+    TK_IF,                // "if"
+    TK_ELSE,              // "else"
+    TK_WHILE,             // "while"
+    TK_FOR,               // "for"
+    TK_INT,               // "int"
+    TK_CONST_INT,         // "10" などの整数
+    TK_IDENT,             // "a" などの識別子
+    TK_SEMICOLON,         // ";"
+    TK_COMMA,             // ","
+    TK_EQUAL,             // "="
+    TK_AND,               // "&"
+    TK_LEFT_PAREN,        // "("
+    TK_RIGHT_PAREN,       // ")"
+    TK_LEFT_BRACE,        // "{"
+    TK_RIGHT_BRACE,       // "}"
+    TK_LEFT_SQ_BRACKET,   // "["
+    TK_RIGHT_SQ_BRACKET,  // "]"
+    TK_PLUS,              // "+"
+    TK_MINUS,             // "-"
+    TK_ASTERISK,          // "*"
+    TK_SLASH,             // "/"
+    TK_LESS,              // "<"
+    TK_MORE,              // ">"
+    TK_LESS_EQUAL,        // "<="
+    TK_MORE_EQUAL,        // ">="
+    TK_EQUAL_EQUAL,       // "=="
+    TK_EXCL_EQUAL,        // "!="
+    TK_SIZEOF,            // "sizeof"
+    TK_EOF,               // EOF
 } TokenKind;
 
 // トークン
