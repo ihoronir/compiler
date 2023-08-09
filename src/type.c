@@ -6,6 +6,8 @@ int type_size(Type type) {
             return 4;
         case TY_PTR:
             return 8;
+        case TY_ARR:
+            return type_size(type->ptr_to) * type->arr_len;
         default:
             error("unimplemented");
     }

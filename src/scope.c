@@ -53,7 +53,8 @@ Item scope_def_func(Scope scope, Type type, char *name) {
 
 Item scope_def_local_var(Scope scope, Type type, char *name) {
     if (get_item(scope, name) != NULL) error("同じ名前のアイテムがあります");
-    scope->func->size += 8;
+    int size = type_size(type);
+    scope->func->size += size > 8 ? size : 8;
     int offset = scope->func->size;
     Item item = new_item_local_var(type, name, offset);
     vec_push(scope->items, item);
