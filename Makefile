@@ -27,12 +27,19 @@ test: $(TARGET)
 test_todo: $(TARGET)
 	./test.js ./test_todo
 
+pi: $(TARGET)
+	$(TARGET) ./pi/pi.c ./pi/pi.s
+	gcc ./pi/pi.s -o ./pi/pi
+	./pi/pi
+	
+
 clean:
 	rm -f $(TARGET) $(OBJDIR)/*.o $(OBJDIR)/*.d
 	rm -f ./test*/asm/*.s ./test*/target/* ./test*/log/*.log
+	rm -f ./pi/pi.s ./pi/pi
 	make clean -C ./test_working/lib
 	make clean -C ./test_todo/lib
 
 -include $(DEPS)
 
-.PHONY: test test_todo clean
+.PHONY: test test_todo clean pi
