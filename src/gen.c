@@ -157,7 +157,7 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
                 }
             }
 
-            print(depth++, "push %d", typed_expr->children->len);
+            print(depth++, "push %d", typed_expr->children->len - 1);
             print(depth--, "pop rax");
 
             TypedExpr func = typed_expr_get_child(typed_expr, 0);
