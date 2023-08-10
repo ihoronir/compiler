@@ -23,7 +23,7 @@ static char *identifier(char **p) {
 void tokenize(char *p) {
     char *head_of_line = p;
     int line = 1;
-    int row;
+    int column;
 
     while (*p) {
         // 空白文字をスキップ
@@ -40,145 +40,145 @@ void tokenize(char *p) {
                 continue;
 
             default:
-                row = p - head_of_line + 1;
+                column = p - head_of_line + 1;
                 break;
         }
 
         if (strncmp(p, "sizeof", 6) == 0 && !is_alnum(p[6])) {
-            tokens_push(TK_SIZEOF, line, row);
+            tokens_push(TK_SIZEOF, line, column);
             p += 6;
             continue;
         }
 
         if (strncmp(p, "return", 6) == 0 && !is_alnum(p[6])) {
-            tokens_push(TK_RETURN, line, row);
+            tokens_push(TK_RETURN, line, column);
             p += 6;
             continue;
         }
 
         if (strncmp(p, "while", 5) == 0 && !is_alnum(p[5])) {
-            tokens_push(TK_WHILE, line, row);
+            tokens_push(TK_WHILE, line, column);
             p += 5;
             continue;
         }
 
         if (strncmp(p, "else", 4) == 0 && !is_alnum(p[4])) {
-            tokens_push(TK_ELSE, line, row);
+            tokens_push(TK_ELSE, line, column);
             p += 4;
             continue;
         }
 
         if (strncmp(p, "char", 4) == 0 && !is_alnum(p[4])) {
-            tokens_push(TK_CHAR, line, row);
+            tokens_push(TK_CHAR, line, column);
             p += 4;
             continue;
         }
 
         if (strncmp(p, "for", 3) == 0 && !is_alnum(p[3])) {
-            tokens_push(TK_FOR, line, row);
+            tokens_push(TK_FOR, line, column);
             p += 3;
             continue;
         }
 
         if (strncmp(p, "int", 3) == 0 && !is_alnum(p[3])) {
-            tokens_push(TK_INT, line, row);
+            tokens_push(TK_INT, line, column);
             p += 3;
             continue;
         }
 
         if (strncmp(p, "if", 2) == 0 && !is_alnum(p[2])) {
-            tokens_push(TK_IF, line, row);
+            tokens_push(TK_IF, line, column);
             p += 2;
             continue;
         }
 
         if (!strncmp(p, "<=", 2)) {
-            tokens_push(TK_LESS_EQUAL, line, row);
+            tokens_push(TK_LESS_EQUAL, line, column);
             p += 2;
             continue;
         }
 
         if (!strncmp(p, ">=", 2)) {
-            tokens_push(TK_MORE_EQUAL, line, row);
+            tokens_push(TK_MORE_EQUAL, line, column);
             p += 2;
             continue;
         }
 
         if (!strncmp(p, "==", 2)) {
-            tokens_push(TK_EQUAL_EQUAL, line, row);
+            tokens_push(TK_EQUAL_EQUAL, line, column);
             p += 2;
             continue;
         }
 
         if (!strncmp(p, "!=", 2)) {
-            tokens_push(TK_EXCL_EQUAL, line, row);
+            tokens_push(TK_EXCL_EQUAL, line, column);
             p += 2;
             continue;
         }
 
         switch (*p) {
             case '+':
-                tokens_push(TK_PLUS, line, row);
+                tokens_push(TK_PLUS, line, column);
                 p++;
                 continue;
             case '-':
-                tokens_push(TK_MINUS, line, row);
+                tokens_push(TK_MINUS, line, column);
                 p++;
                 continue;
             case '*':
-                tokens_push(TK_ASTERISK, line, row);
+                tokens_push(TK_ASTERISK, line, column);
                 p++;
                 continue;
             case '/':
-                tokens_push(TK_SLASH, line, row);
+                tokens_push(TK_SLASH, line, column);
                 p++;
                 continue;
             case '(':
-                tokens_push(TK_LEFT_PAREN, line, row);
+                tokens_push(TK_LEFT_PAREN, line, column);
                 p++;
                 continue;
             case ')':
-                tokens_push(TK_RIGHT_PAREN, line, row);
+                tokens_push(TK_RIGHT_PAREN, line, column);
                 p++;
                 continue;
             case '{':
-                tokens_push(TK_LEFT_BRACE, line, row);
+                tokens_push(TK_LEFT_BRACE, line, column);
                 p++;
                 continue;
             case '}':
-                tokens_push(TK_RIGHT_BRACE, line, row);
+                tokens_push(TK_RIGHT_BRACE, line, column);
                 p++;
                 continue;
             case '[':
-                tokens_push(TK_LEFT_SQ_BRACKET, line, row);
+                tokens_push(TK_LEFT_SQ_BRACKET, line, column);
                 p++;
                 continue;
             case ']':
-                tokens_push(TK_RIGHT_SQ_BRACKET, line, row);
+                tokens_push(TK_RIGHT_SQ_BRACKET, line, column);
                 p++;
                 continue;
             case '<':
-                tokens_push(TK_LESS, line, row);
+                tokens_push(TK_LESS, line, column);
                 p++;
                 continue;
             case '>':
-                tokens_push(TK_MORE, line, row);
+                tokens_push(TK_MORE, line, column);
                 p++;
                 continue;
             case '=':
-                tokens_push(TK_EQUAL, line, row);
+                tokens_push(TK_EQUAL, line, column);
                 p++;
                 continue;
             case ';':
-                tokens_push(TK_SEMICOLON, line, row);
+                tokens_push(TK_SEMICOLON, line, column);
                 p++;
                 continue;
             case ',':
-                tokens_push(TK_COMMA, line, row);
+                tokens_push(TK_COMMA, line, column);
                 p++;
                 continue;
             case '&':
-                tokens_push(TK_AND, line, row);
+                tokens_push(TK_AND, line, column);
                 p++;
                 continue;
         }
@@ -188,24 +188,24 @@ void tokenize(char *p) {
             while (*(++p) != '"') {
                 string_push(str, *p);
             }
-            tokens_push_string(str->buf, line, row);
+            tokens_push_string(str->buf, line, column);
             p++;
             continue;
         }
 
         if (isdigit(*p)) {
-            tokens_push_const_int(strtol(p, &p, 10), line, row);
+            tokens_push_const_int(strtol(p, &p, 10), line, column);
             continue;
         }
 
         char *str;
         if ((str = identifier(&p)) != NULL) {
-            tokens_push_ident(str, line, row);
+            tokens_push_ident(str, line, column);
             continue;
         }
 
-        error_at(line, row, "トークナイズできません");
+        error_at(line, column, "トークナイズできません");
     }
 
-    tokens_push(TK_EOF, line, row);
+    tokens_push(TK_EOF, line, column);
 }

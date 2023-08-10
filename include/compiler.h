@@ -66,7 +66,7 @@ typedef struct token {
     int val_int;     // kind が TK_CONST_INT の場合、その数値
     char *str;       // kind が TK_IDENT の場合、その文字列
     int line;        // トークンの行
-    int row;         // トークンの列
+    int column;         // トークンの列
 } *Token;
 
 typedef enum {
@@ -212,21 +212,21 @@ struct item {
 
 // main.c
 void error(char *fmt, ...) __attribute__((__noreturn__));
-void error_at(int line, int row, char *msg);
+void error_at(int line, int column, char *msg);
 void *checked_malloc(unsigned long len);
 void *checked_realloc(void *ptr, unsigned long len);
 
 // token.c
-Token new_token(TokenKind kind, int line, int row);
-Token new_token_const_int(int val, int line, int row);
-Token new_token_ident(char *str, int line, int row);
-Token new_token_string(char *str, int line, int row);
+Token new_token(TokenKind kind, int line, int column);
+Token new_token_const_int(int val, int line, int column);
+Token new_token_ident(char *str, int line, int column);
+Token new_token_string(char *str, int line, int column);
 
 // tokens.c
-void tokens_push(TokenKind kind, int line, int row);
-void tokens_push_const_int(int val, int line, int row);
-void tokens_push_ident(char *str, int line, int row);
-void tokens_push_string(char *str, int line, int row);
+void tokens_push(TokenKind kind, int line, int column);
+void tokens_push_const_int(int val, int line, int column);
+void tokens_push_ident(char *str, int line, int column);
+void tokens_push_string(char *str, int line, int column);
 Token tokens_next();
 Token tokens_peek();
 

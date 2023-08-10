@@ -43,7 +43,7 @@ static void expect(TokenKind tk) {
     Token token = tokens_peek();
     if (token->kind != tk) {
         fprintf(stderr, "expected: %d, actuall: %d", tk, token->kind);
-        error_at(token->line, token->row, "期待される字句ではありません");
+        error_at(token->line, token->column, "期待される字句ではありません");
     }
     tokens_next();
 }
@@ -57,7 +57,7 @@ static Type expect_type_specifier() {
 static char *expect_ident() {
     Token token = tokens_peek();
     if (token->kind != TK_IDENT)
-        error_at(token->line, token->row, "識別子ではありません");
+        error_at(token->line, token->column, "識別子ではありません");
     tokens_next();
     return token->str;
 }
@@ -65,7 +65,7 @@ static char *expect_ident() {
 static int expect_const_int() {
     Token token = tokens_peek();
     if (token->kind != TK_CONST_INT)
-        error_at(token->line, token->row, "数ではありません");
+        error_at(token->line, token->column, "数ではありません");
     tokens_next();
     return token->val_int;
 }
