@@ -68,6 +68,7 @@ typedef struct token {
 typedef enum {
     EXP_CONST_INT,      // 定数
     EXP_LOCAL_VAR,      // ローカル変数
+    EXP_GLOBAL_VAR,     //
     EXP_FUNC,           //
     EXP_DEREF,          // *[0]
     EXP_ADDR,           // &[0]
@@ -244,7 +245,8 @@ Item new_item_func(Type type, char *name);
 UntypedExpr new_untyped_expr(ExprKind kind, ...);
 UntypedExpr new_untyped_expr_const_int(int val_int);
 // UntypedExpr new_untyped_expr_local_var(Scope scope, char *name);
-UntypedExpr new_untyped_expr_local_var_or_func(Scope scope, char *name);
+UntypedExpr new_untyped_expr_local_var_or_func_or_global_var(Scope scope,
+                                                             char *name);
 UntypedExpr new_untyped_expr_local_var_with_def(Scope scope, Type type,
                                                 char *name);
 UntypedExpr new_untyped_expr_call(Vec children);

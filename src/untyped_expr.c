@@ -5,6 +5,7 @@ static int children_num(ExprKind kind) {
         // 終端記号
         case EXP_CONST_INT:
         case EXP_LOCAL_VAR:
+        case EXP_GLOBAL_VAR:
         case EXP_FUNC:
             return 0;
 
@@ -65,7 +66,8 @@ UntypedExpr new_untyped_expr_const_int(int val_int) {
     return untyped_expr;
 }
 
-UntypedExpr new_untyped_expr_local_var_or_func(Scope scope, char *name) {
+UntypedExpr new_untyped_expr_local_var_or_func_or_global_var(Scope scope,
+                                                             char *name) {
     UntypedExpr untyped_expr = checked_malloc(sizeof(*untyped_expr));
     untyped_expr->item = scope_get_item(scope, name);
     switch (untyped_expr->item->kind) {
@@ -75,6 +77,10 @@ UntypedExpr new_untyped_expr_local_var_or_func(Scope scope, char *name) {
 
         case IT_LOCAL_VAR:
             untyped_expr->kind = EXP_LOCAL_VAR;
+            break;
+
+        case IT_GLOBAL_VAR:
+            untyped_expr->kind = EXP_GLOBAL_VAR;
             break;
 
         default:

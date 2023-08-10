@@ -53,7 +53,7 @@ static UntypedExpr parse_primary(Scope scope) {
 
     char *name;
     if ((name = consume_ident()) != NULL) {
-        return new_untyped_expr_local_var_or_func(scope, name);
+        return new_untyped_expr_local_var_or_func_or_global_var(scope, name);
     }
 
     // そうでなければ数値のはず

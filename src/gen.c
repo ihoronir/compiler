@@ -1,5 +1,3 @@
-#include <assert.h>
-
 #include "compiler.h"
 
 static int gen_id() {
@@ -22,20 +20,26 @@ static void print(int indent, char *fmt, ...) {
 
 static void gen_typed_expr(TypedExpr typed_expr, int depth);
 
-static void gen_address(TypedExpr node, int depth) {
+static void gen_address(TypedExpr typed_expr, int depth) {
     int depth_initial = depth;
 
-    switch (node->kind) {
+    switch (typed_expr->kind) {
         case EXP_LOCAL_VAR:
             print(depth, "# gen_address: EXP_LOCAL_VAR");
             print(depth, "mov rax, rbp");
-            print(depth, "sub rax, %d", node->item->offset);
+            print(depth, "sub rax, %d", typed_expr->item->offset);
+            print(depth++, "push rax");
+            break;
+
+        case EXP_GLOBAL_VAR:
+            print(depth, "# gen_address: EXP_GLOBAL_VAR");
+            print(depth, "lea rax, [rip + %s]", typed_expr->item->name);
             print(depth++, "push rax");
             break;
 
         case EXP_DEREF:
             print(depth, "# gen_address: EXP_DEREF");
-            gen_typed_expr(typed_expr_get_child(node, 0), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
             break;
 
         default:
@@ -129,6 +133,15 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             print(depth--, "pop rax");
             print(depth, "mov %s, [rax]",
                   type_reg_name(REG_RAX, typed_expr->type));
+            print(depth++, "push rax");
+            break;
+
+        case EXP_GLOBAL_VAR:
+            print(depth, "# EXP_GLOBAL_VAR");
+
+            print(depth, "mov %s, %s[rip]",
+                  type_reg_name(REG_RAX, typed_expr->type),
+                  typed_expr->item->name);
             print(depth++, "push rax");
             break;
 
@@ -425,6 +438,7 @@ static void gen_toplevel_definition(ToplevelDefinition tld) {
 
     switch (tld->kind) {
         case TLD_FUNC_DEF: {
+            print(depth, ".text");
             print(depth++, "%s: # TOPLEVEL_DEFINITION", tld->item->name);
 
             print(depth++, "push rbp");
@@ -476,6 +490,7 @@ static void gen_toplevel_definition(ToplevelDefinition tld) {
         } break;
 
         case TLD_GLOBAL_VAR_DEF: {
+            print(depth, ".data");
             print(depth++, "%s: # TOPLEVEL_DEFINITION", tld->item->name);
             print(depth++, ".zero %d", type_size(tld->item->type));
         }
