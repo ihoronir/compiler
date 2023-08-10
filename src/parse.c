@@ -14,6 +14,22 @@ static char *consume_ident() {
     return token->str;
 }
 
+static Type consume_type_specifier() {
+    Token token = tokens_peek();
+    switch (token->kind) {
+        case TK_INT:
+            tokens_next();
+            return new_type_int();
+
+        case TK_CHAR:
+            tokens_next();
+            return new_type_char();
+
+        default:
+            return NULL;
+    }
+}
+
 static void expect(TokenKind tk) {
     Token token = tokens_peek();
     if (token->kind != tk) {
@@ -21,6 +37,12 @@ static void expect(TokenKind tk) {
         error_at(token->line, token->row, "期待される字句ではありません");
     }
     tokens_next();
+}
+
+static Type expect_type_specifier() {
+    Type type = consume_type_specifier();
+    if (type == NULL) error("タイプ識別子ではありません");
+    return type;
 }
 
 static char *expect_ident() {
@@ -229,9 +251,8 @@ static UntypedExpr parse_expr(Scope scope) { return parse_assign(scope); }
 //      | "int" ident ";"
 //      | expr ";"
 static Stmt parse_stmt(Scope scope) {
-    if (consume(TK_INT)) {
-        Type type = new_type_int();
-
+    Type type = consume_type_specifier();
+    if (type != NULL) {
         for (;;) {
             if (consume(TK_ASTERISK)) {
                 type = new_type_ptr(type);
@@ -343,9 +364,8 @@ static Stmt parse_stmt(Scope scope) {
 
 // func = "int" ident "(" ("int" ident ",")* ")" "{" stmt* "}"
 static ToplevelDefinition parse_toplevel_definition(Scope scope) {
-    expect(TK_INT);
+    Type type = expect_type_specifier();
 
-    Type type = new_type_int();
     Vec untyped_expr_children = new_vec();
     Vec stmt_children = new_vec();
     ToplevelDefinition tld;
@@ -370,10 +390,9 @@ static ToplevelDefinition parse_toplevel_definition(Scope scope) {
 
         if (!consume(TK_RIGHT_PAREN)) {
             do {
-                expect(TK_INT);
+                Type type = expect_type_specifier();
 
                 UntypedExpr untyped_expr;
-                Type type = new_type_int();
 
                 for (;;) {
                     if (consume(TK_ASTERISK)) {
