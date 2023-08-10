@@ -225,6 +225,16 @@ void tokenize(char *p) {
             continue;
         }
 
+        if (*p == '\'') {
+            p++;
+            char c = *p;
+            tokens_push_const_int(c, line, column);
+            if (*(++p) != '\'')
+                error_at(line, column, "文字定数が閉じられていません");
+            p++;
+            continue;
+        }
+
         if (isdigit(*p)) {
             tokens_push_const_int(strtol(p, &p, 10), line, column);
             continue;
