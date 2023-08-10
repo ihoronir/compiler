@@ -14,6 +14,22 @@ static char *consume_ident() {
     return token->str;
 }
 
+static Type consume_type_specifier() {
+    Token token = tokens_peek();
+    switch (token->kind) {
+        case TK_INT:
+            tokens_next();
+            return new_type_int();
+
+        case TK_CHAR:
+            tokens_next();
+            return new_type_char();
+
+        default:
+            return NULL;
+    }
+}
+
 static void expect(TokenKind tk) {
     Token token = tokens_peek();
     if (token->kind != tk) {
@@ -229,9 +245,8 @@ static UntypedExpr parse_expr(Scope scope) { return parse_assign(scope); }
 //      | "int" ident ";"
 //      | expr ";"
 static Stmt parse_stmt(Scope scope) {
-    if (consume(TK_INT)) {
-        Type type = new_type_int();
-
+    Type type = consume_type_specifier();
+    if (type != NULL) {
         for (;;) {
             if (consume(TK_ASTERISK)) {
                 type = new_type_ptr(type);

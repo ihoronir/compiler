@@ -30,6 +30,7 @@ typedef enum {
     TK_WHILE,             // "while"
     TK_FOR,               // "for"
     TK_INT,               // "int"
+    TK_CHAR,              // "char"
     TK_CONST_INT,         // "10" などの整数
     TK_IDENT,             // "a" などの識別子
     TK_SEMICOLON,         // ";"
@@ -130,7 +131,7 @@ typedef enum {
 } RegKind;
 
 // 型の種類
-typedef enum { TY_INT, TY_FUNC, TY_ARR, TY_PTR } TypeKind;
+typedef enum { TY_INT, TY_CHAR, TY_FUNC, TY_ARR, TY_PTR } TypeKind;
 
 // 型の型
 typedef struct type {
@@ -221,6 +222,7 @@ void tokenize(char *p);
 int type_size(Type type);
 char *type_reg(Type type);
 Type new_type_int();
+Type new_type_char();
 Type new_type_arr(Type arr_of, int arr_len);
 Type new_type_ptr(Type ptr_to);
 Type new_type_func(Type returning);
