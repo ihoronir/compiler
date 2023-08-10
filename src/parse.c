@@ -39,6 +39,12 @@ static void expect(TokenKind tk) {
     tokens_next();
 }
 
+static Type expect_type_specifier() {
+    Type type = consume_type_specifier();
+    if (type == NULL) error("タイプ識別子ではありません");
+    return type;
+}
+
 static char *expect_ident() {
     Token token = tokens_peek();
     if (token->kind != TK_IDENT)
@@ -358,9 +364,8 @@ static Stmt parse_stmt(Scope scope) {
 
 // func = "int" ident "(" ("int" ident ",")* ")" "{" stmt* "}"
 static ToplevelDefinition parse_toplevel_definition(Scope scope) {
-    expect(TK_INT);
+    Type type = expect_type_specifier();
 
-    Type type = new_type_int();
     Vec untyped_expr_children = new_vec();
     Vec stmt_children = new_vec();
     ToplevelDefinition tld;
@@ -385,10 +390,9 @@ static ToplevelDefinition parse_toplevel_definition(Scope scope) {
 
         if (!consume(TK_RIGHT_PAREN)) {
             do {
-                expect(TK_INT);
+                Type type = expect_type_specifier();
 
                 UntypedExpr untyped_expr;
-                Type type = new_type_int();
 
                 for (;;) {
                     if (consume(TK_ASTERISK)) {

@@ -30,6 +30,8 @@ int type_size(Type type) {
     switch (type->kind) {
         case TY_INT:
             return 4;
+        case TY_CHAR:
+            return 1;
         case TY_PTR:
             return 8;
         case TY_ARR:
