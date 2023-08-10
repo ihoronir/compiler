@@ -1,3 +1,5 @@
+#include <assert.h>
+
 #include "compiler.h"
 
 char *reg[16][4] = {
@@ -45,6 +47,23 @@ char *type_reg_name(RegKind reg_kind, Type type) {
     return reg_name(reg_kind, type_size(type));
 }
 
+char *type_mov_cmd(Type type) {
+    switch (type->kind) {
+        case TY_INT:
+        case TY_PTR:
+            return "mov";
+
+        case TY_CHAR:
+            return "movsx";
+
+        case TY_FUNC:
+        case TY_ARR:
+            assert(0);
+    }
+
+    assert(0);
+}
+
 Type new_type_int() {
     Type type = checked_malloc(sizeof(*type));
     type->kind = TY_INT;
@@ -89,6 +108,27 @@ int type_is_equal(Type type1, Type type2) {
         default:
             error("type_is_equal: unimplemented");
             error("type_is_equal: unreacnable");
+            return 0;
+    }
+}
+
+int type_is_compatible(Type type1, Type type2) {
+    if (type_is_equal(type1, type2)) return 1;
+    if (type1->kind == TY_INT && type2->kind == TY_CHAR) return 1;
+    if (type1->kind == TY_CHAR && type2->kind == TY_INT) return 1;
+
+    return 0;
+}
+
+int type_is_integer(Type type) {
+    switch (type->kind) {
+        case TY_INT:
+        case TY_CHAR:
+            return 1;
+
+        case TY_FUNC:
+        case TY_ARR:
+        case TY_PTR:
             return 0;
     }
 }

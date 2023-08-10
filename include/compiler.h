@@ -227,7 +227,10 @@ Type new_type_arr(Type arr_of, int arr_len);
 Type new_type_ptr(Type ptr_to);
 Type new_type_func(Type returning);
 int type_is_equal(Type type1, Type type2);
+int type_is_compatible(Type type1, Type type2);
+int type_is_integer(Type type);
 char *type_reg_name(RegKind reg_kind, Type type);
+char *type_mov_cmd(Type type);
 
 // scope.c
 Scope new_scope_global();

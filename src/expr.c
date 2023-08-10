@@ -92,7 +92,7 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
             UntypedExpr u_rhs = untyped_expr_get_child(ue, 1);
             TypedExpr t_rhs = decay_if_array(to_typed_expr(u_rhs));
 
-            if (t_lhs->type->kind == TY_INT && t_rhs->type->kind == TY_INT) {
+            if (type_is_integer(t_lhs->type) && type_is_integer(t_rhs->type)) {
                 te->type = new_type_int();
 
                 te->children = new_vec_with_capacity(2);
@@ -100,7 +100,7 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
                 vec_push(te->children, t_rhs);
 
             } else if (t_lhs->type->kind == TY_PTR &&
-                       t_rhs->type->kind == TY_INT) {
+                       type_is_integer(t_rhs->type)) {
                 te->type = t_lhs->type;
 
                 te->children = new_vec_with_capacity(2);
@@ -110,7 +110,7 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
                     EXP_MUL, u_rhs, new_untyped_expr_const_int(size), NULL));
                 vec_push(te->children, multiplied);
 
-            } else if (t_lhs->type->kind == TY_INT &&
+            } else if (type_is_integer(t_lhs->type) &&
                        t_rhs->type->kind == TY_PTR) {
                 te->type = t_rhs->type;
 
@@ -176,8 +176,8 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
             UntypedExpr u_rhs = untyped_expr_get_child(ue, 1);
             TypedExpr t_rhs = decay_if_array(to_typed_expr(u_rhs));
 
-            if (!type_is_equal(t_lhs->type, t_rhs->type))
-                error("異なる型の変数には代入できません");
+            if (!type_is_compatible(t_lhs->type, t_rhs->type))
+                error("対応していない型同士の変数には代入できません");
 
             te->type = t_lhs->type;
             te->children = new_vec_with_capacity(2);

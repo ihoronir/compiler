@@ -1,11 +1,9 @@
-char g;
-
-char f() { return 0; }
 
 int main() {
-    char a[3];
-
-    if (sizeof g != 1) return 1;
-    if (sizeof f() != 1) return 1;
-    return sizeof a;
+    char x[3];
+    x[0] = -1;
+    x[1] = 2;
+    int y;
+    y = 4;
+    return x[0] + y;
 }

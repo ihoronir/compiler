@@ -18,6 +18,27 @@ static void print(int indent, char *fmt, ...) {
     va_end(ap);
 }
 
+static void mov_mem_to_reg(int depth, Type type, RegKind dst_reg,
+                           const char *source1, const char *source2) {
+    switch (type->kind) {
+        case TY_INT:
+        case TY_PTR:
+            print(depth, "mov %s, %s[%s]", type_reg_name(dst_reg, type),
+                  source1, source2);
+            break;
+
+        case TY_CHAR:
+            // movsx は int のサイズ (32bit) に符号付き拡張するので
+            // dst には int が入るレジスタを指定する
+            print(depth, "movsx %s, BYTE PTR %s[%s]",
+                  type_reg_name(dst_reg, new_type_int()), source1, source2);
+            break;
+
+        default:
+            assert(0);
+    }
+}
+
 static void gen_typed_expr(TypedExpr typed_expr, int depth);
 
 static void gen_address(TypedExpr typed_expr, int depth) {
@@ -131,17 +152,15 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             gen_address(typed_expr, depth++);
 
             print(depth--, "pop rax");
-            print(depth, "mov %s, [rax]",
-                  type_reg_name(REG_RAX, typed_expr->type));
+            mov_mem_to_reg(depth, typed_expr->type, REG_RAX, "", "rax");
             print(depth++, "push rax");
             break;
 
         case EXP_GLOBAL_VAR:
             print(depth, "# EXP_GLOBAL_VAR");
 
-            print(depth, "mov %s, %s[rip]",
-                  type_reg_name(REG_RAX, typed_expr->type),
-                  typed_expr->item->name);
+            mov_mem_to_reg(depth, typed_expr->type, REG_RAX,
+                           typed_expr->item->name, "rip");
             print(depth++, "push rax");
             break;
 
@@ -452,28 +471,35 @@ static void gen_toplevel_definition(ToplevelDefinition tld) {
                 error("7 個以上の仮引数には対応していません");
 
             for (int i = 0; i < tld->untyped_expr_children->len; i++) {
-                gen_address(tld->typed_expr_children->buf[i], depth++);
+                TypedExpr param = tld->typed_expr_children->buf[i];
+                gen_address(param, depth++);
 
                 print(depth--, "pop rax");
 
                 switch (i) {
                     case 0:
-                        print(depth, "mov [rax], rdi");
+                        print(depth, "mov [rax], %s",
+                              type_reg_name(REG_RDI, param->type));
                         break;
                     case 1:
-                        print(depth, "mov [rax], rsi");
+                        print(depth, "mov [rax], %s",
+                              type_reg_name(REG_RSI, param->type));
                         break;
                     case 2:
-                        print(depth, "mov [rax], rdx");
+                        print(depth, "mov [rax], %s",
+                              type_reg_name(REG_RDX, param->type));
                         break;
                     case 3:
-                        print(depth, "mov [rax], rcx");
+                        print(depth, "mov [rax], %s",
+                              type_reg_name(REG_RCX, param->type));
                         break;
                     case 4:
-                        print(depth, "mov [rax], r8");
+                        print(depth, "mov [rax], %s",
+                              type_reg_name(REG_R8, param->type));
                         break;
                     case 5:
-                        print(depth, "mov [rax], r9");
+                        print(depth, "mov [rax], %s",
+                              type_reg_name(REG_R9, param->type));
                         break;
                 }
             }
