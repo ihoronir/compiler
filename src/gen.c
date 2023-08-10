@@ -92,6 +92,31 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
 
         case EXP_STRING:
             assert(0);  // 冒頭の if により gen_address で対処される。
+                        //
+        case EXP_COMPOUND_ADD: {
+            TypedExpr dst = typed_expr_get_child(typed_expr, 0);
+            TypedExpr src = typed_expr_get_child(typed_expr, 1);
+
+            gen_address(dst, depth++);  // スタックトップには &dst
+            print(depth--, "pop rax");
+            print(depth++, "push rax");  // スタックトップと rax に &dst
+            print(depth, "mov rax, [rax]");  // rax に dst
+            print(depth++, "push rax");  // スタックに下が &dst 上が dst
+            gen_typed_expr(src, depth++);  // スタックに src をつむ
+                                           //
+                                           // src
+                                           // dst
+                                           // &dst
+                                           //
+            print(depth--, "pop rax");     //
+            print(depth--, "pop rdi");
+            print(depth,
+                  "add rax, rdi");  // rax に src + dst 。スタックトップに &dst
+            print(depth--, "pop rdi");  // rdi に&dst スタック空
+            print(depth, "mov [rdi], %s",
+                  type_reg_name(REG_RAX, dst->type));  //
+            print(depth++, "push rax");
+        } break;
 
         case EXP_FUNC:
             error("関数名を値としてはつかえません");
@@ -205,6 +230,7 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
 
             print(depth--, "pop rax");
             print(depth, "mov rax, [rax]");
+            // TODO: mov_mem_to_reg を使う
             print(depth++, "push rax");
             break;
 

@@ -35,7 +35,7 @@ typedef enum {
     TK_CHAR,              // "char"
     TK_CONST_INT,         // "10" などの整数
     TK_IDENT,             // "a" などの識別子
-    TK_STRING,            //
+    TK_STRING,            // 文字列リテラル
     TK_SEMICOLON,         // ";"
     TK_COMMA,             // ","
     TK_EQUAL,             // "="
@@ -56,6 +56,7 @@ typedef enum {
     TK_MORE_EQUAL,        // ">="
     TK_EQUAL_EQUAL,       // "=="
     TK_EXCL_EQUAL,        // "!="
+    TK_PLUS_EQUAL,        // "+="
     TK_SIZEOF,            // "sizeof"
     TK_EOF,               // EOF
 } TokenKind;
@@ -83,6 +84,7 @@ typedef enum {
     EXP_SUB,            // [0] - [1]
     EXP_LESS,           // [0] < [1]
     EXP_LESS_OR_EQUAL,  // [0] <= [1]
+    EXP_COMPOUND_ADD,   // [0] += [b]
     EXP_EQUAL,          // [0] == [1]
     EXP_NOT_EQUAL,      // [0] != [1]
     EXP_ASSIGN,         // [0] = [1]

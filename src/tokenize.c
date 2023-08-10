@@ -148,6 +148,12 @@ void tokenize(char *p) {
             continue;
         }
 
+        if (!strncmp(p, "+=", 2)) {
+            tokens_push(TK_PLUS_EQUAL, line, column);
+            p += 2;
+            continue;
+        }
+
         switch (*p) {
             case '+':
                 tokens_push(TK_PLUS, line, column);

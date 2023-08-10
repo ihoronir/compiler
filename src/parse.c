@@ -78,9 +78,9 @@ static UntypedExpr parse_expr(Scope scope);
 //         | num
 static UntypedExpr parse_primary(Scope scope) {
     if (consume(TK_LEFT_PAREN)) {
-        UntypedExpr untyped_node = parse_expr(scope);
+        UntypedExpr untyped_expr = parse_expr(scope);
         expect(TK_RIGHT_PAREN);
-        return untyped_node;
+        return untyped_expr;
     }
 
     char *name = consume_ident();
@@ -96,8 +96,8 @@ static UntypedExpr parse_primary(Scope scope) {
     }
 
     // そうでなければ数値のはず
-    UntypedExpr untyped_node = new_untyped_expr_const_int(expect_const_int());
-    return untyped_node;
+    UntypedExpr untyped_expr = new_untyped_expr_const_int(expect_const_int());
+    return untyped_expr;
 }
 
 // postfix = primary ( "[" expr "]" |  "(" expr, expr, ... ")" )*
@@ -162,97 +162,100 @@ static UntypedExpr parse_unary(Scope scope) {
 
 // mul = unary ("*" unary | "/" unary)*
 static UntypedExpr parse_mul(Scope scope) {
-    UntypedExpr untyped_node = parse_unary(scope);
+    UntypedExpr untyped_expr = parse_unary(scope);
 
     for (;;) {
         if (consume(TK_ASTERISK)) {
-            untyped_node = new_untyped_expr(EXP_MUL, untyped_node,
+            untyped_expr = new_untyped_expr(EXP_MUL, untyped_expr,
                                             parse_unary(scope), NULL);
 
         } else if (consume(TK_SLASH)) {
-            untyped_node = new_untyped_expr(EXP_DIV, untyped_node,
+            untyped_expr = new_untyped_expr(EXP_DIV, untyped_expr,
                                             parse_unary(scope), NULL);
 
         } else {
-            return untyped_node;
+            return untyped_expr;
         }
     }
 }
 
 // add = mul ("+" mul | "-" mul)*
 static UntypedExpr parse_add(Scope scope) {
-    UntypedExpr untyped_node = parse_mul(scope);
+    UntypedExpr untyped_expr = parse_mul(scope);
 
     for (;;) {
         if (consume(TK_PLUS)) {
-            untyped_node =
-                new_untyped_expr(EXP_ADD, untyped_node, parse_mul(scope), NULL);
+            untyped_expr =
+                new_untyped_expr(EXP_ADD, untyped_expr, parse_mul(scope), NULL);
 
         } else if (consume(TK_MINUS)) {
-            untyped_node =
-                new_untyped_expr(EXP_SUB, untyped_node, parse_mul(scope), NULL);
+            untyped_expr =
+                new_untyped_expr(EXP_SUB, untyped_expr, parse_mul(scope), NULL);
 
         } else {
-            return untyped_node;
+            return untyped_expr;
         }
     }
 }
 
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
 static UntypedExpr parse_relational(Scope scope) {
-    UntypedExpr untyped_node = parse_add(scope);
+    UntypedExpr untyped_expr = parse_add(scope);
 
     for (;;) {
         if (consume(TK_LESS)) {
-            untyped_node = new_untyped_expr(EXP_LESS, untyped_node,
+            untyped_expr = new_untyped_expr(EXP_LESS, untyped_expr,
                                             parse_add(scope), NULL);
 
         } else if (consume(TK_LESS_EQUAL)) {
-            untyped_node = new_untyped_expr(EXP_LESS_OR_EQUAL, untyped_node,
+            untyped_expr = new_untyped_expr(EXP_LESS_OR_EQUAL, untyped_expr,
                                             parse_add(scope), NULL);
 
         } else if (consume(TK_MORE)) {
-            untyped_node = new_untyped_expr(EXP_LESS, parse_add(scope),
-                                            untyped_node, NULL);
+            untyped_expr = new_untyped_expr(EXP_LESS, parse_add(scope),
+                                            untyped_expr, NULL);
 
         } else if (consume(TK_MORE_EQUAL)) {
-            untyped_node = new_untyped_expr(EXP_LESS_OR_EQUAL, parse_add(scope),
-                                            untyped_node, NULL);
+            untyped_expr = new_untyped_expr(EXP_LESS_OR_EQUAL, parse_add(scope),
+                                            untyped_expr, NULL);
 
         } else {
-            return untyped_node;
+            return untyped_expr;
         }
     }
 }
 
 // equality = relational ("==" relational | "!=" relational)*
 static UntypedExpr parse_equality(Scope scope) {
-    UntypedExpr untyped_node = parse_relational(scope);
+    UntypedExpr untyped_expr = parse_relational(scope);
 
     for (;;) {
         if (consume(TK_EQUAL_EQUAL)) {
-            untyped_node = new_untyped_expr(EXP_EQUAL, untyped_node,
+            untyped_expr = new_untyped_expr(EXP_EQUAL, untyped_expr,
                                             parse_relational(scope), NULL);
 
         } else if (consume(TK_EXCL_EQUAL)) {
-            untyped_node = new_untyped_expr(EXP_NOT_EQUAL, untyped_node,
+            untyped_expr = new_untyped_expr(EXP_NOT_EQUAL, untyped_expr,
                                             parse_relational(scope), NULL);
 
         } else {
-            return untyped_node;
+            return untyped_expr;
         }
     }
 }
-// assign = equality ("=" assign)?
+// assign = equality ( ("=" | "+=" ) assign )?
 static UntypedExpr parse_assign(Scope scope) {
-    UntypedExpr untyped_node = parse_equality(scope);
+    UntypedExpr untyped_expr = parse_equality(scope);
 
     if (consume(TK_EQUAL)) {
-        untyped_node = new_untyped_expr(EXP_ASSIGN, untyped_node,
+        untyped_expr = new_untyped_expr(EXP_ASSIGN, untyped_expr,
+                                        parse_assign(scope), NULL);
+    } else if (consume(TK_PLUS_EQUAL)) {
+        untyped_expr = new_untyped_expr(EXP_COMPOUND_ADD, untyped_expr,
                                         parse_assign(scope), NULL);
     }
 
-    return untyped_node;
+    return untyped_expr;
 }
 
 // expr = assign

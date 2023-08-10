@@ -25,6 +25,7 @@ static int children_num(ExprKind kind) {
         case EXP_EQUAL:
         case EXP_NOT_EQUAL:
         case EXP_ASSIGN:
+        case EXP_COMPOUND_ADD:
             return 2;
 
             // 非終端記号（子の個数が可変）

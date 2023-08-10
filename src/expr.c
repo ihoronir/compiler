@@ -194,6 +194,25 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
             return te;
         }
 
+        case EXP_COMPOUND_ADD: {
+            UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
+            TypedExpr t_lhs = to_typed_expr(u_lhs);
+            if (t_lhs->type->kind == TY_ARR)
+                error("配列型は += の左辺にこれません");
+
+            UntypedExpr u_rhs = untyped_expr_get_child(ue, 1);
+            TypedExpr t_rhs = decay_if_array(to_typed_expr(u_rhs));
+
+            if (!type_is_integer(t_rhs->type))
+                error("+= の右辺は整数型のみとれます");
+
+            te->type = t_lhs->type;
+            te->children = new_vec_with_capacity(2);
+            vec_push(te->children, t_lhs);
+            vec_push(te->children, t_rhs);
+            return te;
+        }
+
         case EXP_CALL: {
             UntypedExpr func = untyped_expr_get_child(ue, 0);
             if (func->item->type->kind != TY_FUNC)
