@@ -30,7 +30,7 @@ void tokenize(char *p) {
         switch (*p) {
             case '\n':
                 line++;
-                head_of_line = p++;
+                head_of_line = ++p;
                 continue;
 
             case '\t':
@@ -42,6 +42,38 @@ void tokenize(char *p) {
             default:
                 column = p - head_of_line + 1;
                 break;
+        }
+
+        // 行コメントをスキップ
+        if (strncmp(p, "//", 2) == 0) {
+            p += 2;
+            while (*p != '\n') p++;
+            continue;
+        }
+
+        // ブロックコメントをスキップ
+        if (strncmp(p, "/*", 2) == 0) {
+            p += 2;
+            for (;;) {
+                if (*p == '\0') error("コメントがとじられていません");
+
+                if (strncmp(p, "*/", 2) == 0) {
+                    p += 2;
+                    break;
+                }
+
+                if (*p == '\n') {
+                    line++;
+                    head_of_line = ++p;
+
+                } else {
+                    p++;
+                }
+            }
+
+            // if (!q) error_at(p, "コメントが閉じられていません");
+            // p = q + 2;
+            continue;
         }
 
         if (strncmp(p, "sizeof", 6) == 0 && !is_alnum(p[6])) {
