@@ -18,6 +18,7 @@ static int children_num(ExprKind kind) {
             return 1;
         case EXP_MUL:
         case EXP_DIV:
+        case EXP_MOD:
         case EXP_ADD:
         case EXP_SUB:
         case EXP_LESS:

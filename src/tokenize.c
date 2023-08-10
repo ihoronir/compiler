@@ -171,6 +171,10 @@ void tokenize(char *p) {
                 tokens_push(TK_SLASH, line, column);
                 p++;
                 continue;
+            case '%':
+                tokens_push(TK_PERCENT, line, column);
+                p++;
+                continue;
             case '(':
                 tokens_push(TK_LEFT_PAREN, line, column);
                 p++;

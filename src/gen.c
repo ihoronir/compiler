@@ -287,6 +287,20 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             print(depth++, "push rax");
             break;
 
+        case EXP_MOD:
+            print(depth, "# EXP_MOD");
+
+            gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
+            gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
+
+            print(depth--, "pop rdi");
+            print(depth--, "pop rax");
+
+            print(depth, "cqo");
+            print(depth, "idiv rdi");
+            print(depth++, "push rdx");
+            break;
+
         case EXP_EQUAL:
             print(depth, "# EXP_EQUAL");
 

@@ -50,6 +50,7 @@ typedef enum {
     TK_MINUS,             // "-"
     TK_ASTERISK,          // "*"
     TK_SLASH,             // "/"
+    TK_PERCENT,           // "%"
     TK_LESS,              // "<"
     TK_MORE,              // ">"
     TK_LESS_EQUAL,        // "<="
@@ -80,6 +81,7 @@ typedef enum {
     EXP_ADDR,           // &[0]
     EXP_MUL,            // [0] * [1]
     EXP_DIV,            // [0] / [1]
+    EXP_MOD,            // [0] % [1]
     EXP_ADD,            // [0] + [1]
     EXP_SUB,            // [0] - [1]
     EXP_LESS,           // [0] < [1]

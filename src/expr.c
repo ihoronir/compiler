@@ -1,9 +1,7 @@
-#include <string.h>
-
 #include "compiler.h"
 
-// te->type が TY_ARR ならば、その te を子供に持つ EXP_DECAY を作る
-// その EXP_DECAY は TY_PTR である
+// te->type が TY_ARR ならば、その te を子供に持つ EXP_DECAY
+// を作る その EXP_DECAY は TY_PTR である
 TypedExpr decay_if_array(TypedExpr te) {
     if (te->type->kind != TY_ARR) return te;
 
@@ -76,7 +74,8 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
         }
 
         case EXP_DIV:
-        case EXP_MUL: {
+        case EXP_MUL:
+        case EXP_MOD: {
             UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
             TypedExpr t_lhs = decay_if_array(to_typed_expr(u_lhs));
 
@@ -84,7 +83,7 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
             TypedExpr t_rhs = decay_if_array(to_typed_expr(u_rhs));
 
             if (t_lhs->type->kind != TY_INT || t_rhs->type->kind != TY_INT)
-                error("INT 同士でしか掛け算・割り算はできません");
+                error("*, /, % は整数同士でしかつかえません");
 
             te->type = new_type_int();
             te->children = new_vec_with_capacity(2);
@@ -185,7 +184,9 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
             TypedExpr t_rhs = decay_if_array(to_typed_expr(u_rhs));
 
             if (!type_is_compatible(t_lhs->type, t_rhs->type))
-                error("対応していない型同士の変数には代入できません");
+                error(
+                    "対応していない型同士の変数には代入でき?"
+                    "せん");
 
             te->type = t_lhs->type;
             te->children = new_vec_with_capacity(2);

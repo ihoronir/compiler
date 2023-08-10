@@ -160,7 +160,7 @@ static UntypedExpr parse_unary(Scope scope) {
     return parse_postfix(scope);
 }
 
-// mul = unary ("*" unary | "/" unary)*
+// mul = unary ( ( "*" |  "/" | "%" ) unary)*
 static UntypedExpr parse_mul(Scope scope) {
     UntypedExpr untyped_expr = parse_unary(scope);
 
@@ -171,6 +171,10 @@ static UntypedExpr parse_mul(Scope scope) {
 
         } else if (consume(TK_SLASH)) {
             untyped_expr = new_untyped_expr(EXP_DIV, untyped_expr,
+                                            parse_unary(scope), NULL);
+
+        } else if (consume(TK_PERCENT)) {
+            untyped_expr = new_untyped_expr(EXP_MOD, untyped_expr,
                                             parse_unary(scope), NULL);
 
         } else {
