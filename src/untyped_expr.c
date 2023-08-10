@@ -7,6 +7,7 @@ static int children_num(ExprKind kind) {
         case EXP_LOCAL_VAR:
         case EXP_GLOBAL_VAR:
         case EXP_FUNC:
+        case EXP_STRING:
             return 0;
 
         // 非終端記号（子の個数が固定）
@@ -89,17 +90,17 @@ UntypedExpr new_untyped_expr_local_var_or_func_or_global_var(Scope scope,
     return untyped_expr;
 }
 
-// UntypedExpr new_untyped_expr_local_var(Scope scope, char *name) {
-//     UntypedExpr untyped_expr = checked_malloc(sizeof(*untyped_expr));
-//     untyped_expr->kind = EXP_LOCAL_VAR;
-//     untyped_expr->item = scope_get_item(scope, name);
-//     return untyped_expr;
-// }
-
 UntypedExpr new_untyped_expr_call(Vec children) {
     UntypedExpr untyped_expr = checked_malloc(sizeof(*untyped_expr));
     untyped_expr->kind = EXP_CALL;
     untyped_expr->children = children;
+    return untyped_expr;
+}
+
+UntypedExpr new_untyped_expr_string(StringItem string_item) {
+    UntypedExpr untyped_expr = checked_malloc(sizeof(*untyped_expr));
+    untyped_expr->kind = EXP_STRING;
+    untyped_expr->string_item = string_item;
     return untyped_expr;
 }
 

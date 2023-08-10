@@ -183,6 +183,16 @@ void tokenize(char *p) {
                 continue;
         }
 
+        if (*p == '"') {
+            String str = new_string();
+            while (*(++p) != '"') {
+                string_push(str, *p);
+            }
+            tokens_push_string(str->buf, line, row);
+            p++;
+            continue;
+        }
+
         if (isdigit(*p)) {
             tokens_push_const_int(strtol(p, &p, 10), line, row);
             continue;

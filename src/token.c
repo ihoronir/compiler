@@ -26,3 +26,9 @@ Token new_token_ident(char *str, int line, int row) {
     token->str = str;
     return token;
 }
+
+Token new_token_string(char *str, int line, int row) {
+    Token token = new_token_unchecked(TK_STRING, line, row);
+    token->str = str;
+    return token;
+}

@@ -1,5 +1,7 @@
 #include "compiler.h"
 
+Vec string_storage;
+
 static int consume(TokenKind tk) {
     Token token = tokens_peek();
     if (token->kind != tk) return 0;
@@ -10,6 +12,13 @@ static int consume(TokenKind tk) {
 static char *consume_ident() {
     Token token = tokens_peek();
     if (token->kind != TK_IDENT) return NULL;
+    tokens_next();
+    return token->str;
+}
+
+static char *consume_string() {
+    Token token = tokens_peek();
+    if (token->kind != TK_STRING) return NULL;
     tokens_next();
     return token->str;
 }
@@ -65,6 +74,7 @@ static UntypedExpr parse_expr(Scope scope);
 
 // primary = "(" expr ")"
 //         | ident
+//         | string
 //         | num
 static UntypedExpr parse_primary(Scope scope) {
     if (consume(TK_LEFT_PAREN)) {
@@ -73,9 +83,16 @@ static UntypedExpr parse_primary(Scope scope) {
         return untyped_node;
     }
 
-    char *name;
-    if ((name = consume_ident()) != NULL) {
+    char *name = consume_ident();
+    if (name != NULL) {
         return new_untyped_expr_local_var_or_func_or_global_var(scope, name);
+    }
+
+    char *str = consume_string();
+    if (str != NULL) {
+        StringItem string_item = new_string_item(str);
+        vec_push(string_storage, string_item);
+        return new_untyped_expr_string(string_item);
     }
 
     // そうでなければ数値のはず
@@ -443,6 +460,8 @@ static ToplevelDefinition parse_toplevel_definition(Scope scope) {
 
 // program = func*;
 Vec /* <ToplevelDefinition> */ parse_program() {
+    string_storage = new_vec();
+
     Vec children = new_vec();
     Scope scope = new_scope_global();
 

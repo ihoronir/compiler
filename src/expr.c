@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "compiler.h"
 
 // te->type が TY_ARR ならば、その te を子供に持つ EXP_DECAY を作る
@@ -36,6 +38,12 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
         case EXP_CONST_INT:
             te->val_int = ue->val_int;
             te->type = new_type_int();
+            return te;
+
+        case EXP_STRING:
+            te->type =
+                new_type_arr(new_type_char(), strlen(ue->string_item->str) + 1);
+            te->string_item = ue->string_item;
             return te;
 
         case EXP_FUNC:

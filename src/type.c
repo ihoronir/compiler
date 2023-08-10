@@ -131,4 +131,5 @@ int type_is_integer(Type type) {
         case TY_PTR:
             return 0;
     }
+    assert(0);
 }

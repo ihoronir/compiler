@@ -63,11 +63,19 @@ static void gen_address(TypedExpr typed_expr, int depth) {
             gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
             break;
 
+        case EXP_STRING:
+            // gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
+            print(depth, "# gen_address: EXP_STRING");
+            print(depth, "lea rax, [rip + .LC%d]",
+                  typed_expr->string_item->label);
+            print(depth++, "push rax");
+            break;
+
         default:
             error("アドレスが計算できません");
     }
 
-    if (depth != depth_initial + 1) error("gen_address: unreachable");
+    if (depth != depth_initial + 1) error("gen_address: depth が間違ってます");
 }
 
 static void gen_typed_expr(TypedExpr typed_expr, int depth) {
@@ -80,7 +88,10 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
 
     switch (typed_expr->kind) {
         case EXP_SIZEOF:
-            assert(0);
+            assert(0);  // ここに来る前に整数に置き換えられている
+
+        case EXP_STRING:
+            assert(0);  // 冒頭の if により gen_address で対処される。
 
         case EXP_FUNC:
             error("関数名を値としてはつかえません");
@@ -528,6 +539,13 @@ void gen_program(Vec /* <ToplevelDefinition> */ program, FILE *out_fp) {
 
     print(0, ".intel_syntax noprefix");
     print(0, ".globl main");
+
+    for (int i = 0; i < string_storage->len; i++) {
+        StringItem string_item = string_storage->buf[i];
+        fputc('\n', out);
+        print(0, ".LC%d:", string_item->label);
+        print(1, ".string \"%s\"", string_item->str);
+    }
 
     for (int i = 0; i < program->len; i++) {
         fputc('\n', out);

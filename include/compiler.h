@@ -15,6 +15,8 @@ typedef struct vec {
     int capacity;
 } *Vec;
 
+extern Vec string_storage;
+
 // char の可変長バッファ
 typedef struct string {
     char *buf;
@@ -33,6 +35,7 @@ typedef enum {
     TK_CHAR,              // "char"
     TK_CONST_INT,         // "10" などの整数
     TK_IDENT,             // "a" などの識別子
+    TK_STRING,            //
     TK_SEMICOLON,         // ";"
     TK_COMMA,             // ","
     TK_EQUAL,             // "="
@@ -71,6 +74,7 @@ typedef enum {
     EXP_LOCAL_VAR,      // ローカル変数
     EXP_GLOBAL_VAR,     //
     EXP_FUNC,           //
+    EXP_STRING,         //
     EXP_DEREF,          // *[0]
     EXP_ADDR,           // &[0]
     EXP_MUL,            // [0] * [1]
@@ -102,6 +106,13 @@ typedef enum {
 
 typedef struct item *Item;
 
+typedef struct string_item {
+    int label;
+    char *str;
+} *StringItem;
+
+StringItem new_string_item(char *str);
+
 // 式
 typedef struct untyped_expr {
     ExprKind kind;  // ノードの種類
@@ -109,6 +120,7 @@ typedef struct untyped_expr {
     // Token token;    // 対応するトークン
     Item item;
     int val_int;
+    StringItem string_item;
 } *UntypedExpr;
 
 typedef enum {
@@ -147,6 +159,7 @@ typedef struct typed_expr {
     // Token token;    // 対応するトークン
     Item item;
     Type type;
+    StringItem string_item;
     int val_int;
 } *TypedExpr;
 
@@ -207,11 +220,13 @@ void *checked_realloc(void *ptr, unsigned long len);
 Token new_token(TokenKind kind, int line, int row);
 Token new_token_const_int(int val, int line, int row);
 Token new_token_ident(char *str, int line, int row);
+Token new_token_string(char *str, int line, int row);
 
 // tokens.c
 void tokens_push(TokenKind kind, int line, int row);
 void tokens_push_const_int(int val, int line, int row);
 void tokens_push_ident(char *str, int line, int row);
+void tokens_push_string(char *str, int line, int row);
 Token tokens_next();
 Token tokens_peek();
 
@@ -249,6 +264,7 @@ Item new_item_func(Type type, char *name);
 // expr.c
 UntypedExpr new_untyped_expr(ExprKind kind, ...);
 UntypedExpr new_untyped_expr_const_int(int val_int);
+UntypedExpr new_untyped_expr_string(StringItem string_item);
 // UntypedExpr new_untyped_expr_local_var(Scope scope, char *name);
 UntypedExpr new_untyped_expr_local_var_or_func_or_global_var(Scope scope,
                                                              char *name);
