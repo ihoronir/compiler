@@ -490,11 +490,6 @@ static void gen_stmt(Stmt stmt, int depth) {
             print(depth++, "push rax");
 
         } break;
-
-        case STMT_FUNC_DEFINITION:
-        case STMT_PROGRAM:
-            assert(0);
-            break;
     }
 
     if ((stmt->kind == STMT_RETURN && depth != 1) ||

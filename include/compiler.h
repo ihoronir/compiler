@@ -96,15 +96,12 @@ typedef enum {
 } ExprKind;
 
 typedef enum {
-    STMT_RETURN,           // return [0]
-    STMT_IF,               // if ([0]) [1]
-    STMT_IF_ELSE,          // if ([0]) [1] else [2]
-    STMT_WHILE,            // while ([0]) [1]
-    STMT_FOR,              // for ([0]; [1]; [2]) [3]
-    STMT_BLOCK,            // ブロック { [0] [1] [2] ...}
-    STMT_FUNC_DEFINITION,  // 関数定義 func_name([0], [1], [2], [3], [4], ...,
-                           // [n-1]) [n]
-    STMT_PROGRAM,   // プログラム全体 [0] [1] [2] ...
+    STMT_RETURN,    // return [0]
+    STMT_IF,        // if ([0]) [1]
+    STMT_IF_ELSE,   // if ([0]) [1] else [2]
+    STMT_WHILE,     // while ([0]) [1]
+    STMT_FOR,       // for ([0]; [1]; [2]) [3]
+    STMT_BLOCK,     // ブロック { [0] [1] [2] ...}
     STMT_ONLY_EXPR  //
 } StmtKind;
 
