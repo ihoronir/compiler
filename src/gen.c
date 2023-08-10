@@ -165,9 +165,9 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             char *name = func->item->name;
 
             if (depth % 2 == 1) {
-                print(depth++, "add rsp, 8");
+                print(depth++, "sub rsp, 8");
                 print(depth, "call %s", name);
-                print(depth--, "sub rsp, 8");
+                print(depth--, "add rsp, 8");
 
             } else {
                 print(depth, "call %s", name);
