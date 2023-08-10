@@ -1,1 +1,4 @@
-int main(){int a[2][3]; return 174;}
+int main() {
+    int a[2][3];
+    return 174;
+}

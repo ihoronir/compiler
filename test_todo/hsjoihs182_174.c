@@ -1,1 +1,4 @@
-int main(){ int; return 174;}
+int main() {
+    int;
+    return 174;
+}

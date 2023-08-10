@@ -1,1 +1,4 @@
-int main(void){ foo: return 174;}
+int main(void) {
+foo:
+    return 174;
+}

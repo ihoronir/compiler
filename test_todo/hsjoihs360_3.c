@@ -1,1 +1,8 @@
-int main(){ int i = 3; goto a; for (i = 0; i < 10; i++) { a: return i; } }
+int main() {
+    int i = 3;
+    goto a;
+    for (i = 0; i < 10; i++) {
+    a:
+        return i;
+    }
+}

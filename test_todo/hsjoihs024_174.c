@@ -1,1 +1,1 @@
-int main(){return 175^1;}
+int main() { return 175 ^ 1; }

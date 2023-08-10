@@ -1,1 +1,7 @@
-struct A {int a;};int main(){const struct A const *const a; return 174;}
+struct A {
+    int a;
+};
+int main() {
+    const struct A const *const a;
+    return 174;
+}

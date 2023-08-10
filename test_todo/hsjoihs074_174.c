@@ -1,1 +1,8 @@
-int main(){int a; int b; a=3; b=0; b+= ++a; return a*b*11-2;}
+int main() {
+    int a;
+    int b;
+    a = 3;
+    b = 0;
+    b += ++a;
+    return a * b * 11 - 2;
+}

@@ -1,1 +1,4 @@
-int main() { char a; return sizeof a; }
+int main() {
+    char a;
+    return sizeof a;
+}

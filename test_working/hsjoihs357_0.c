@@ -1,1 +1,1 @@
-int main() {return 0;} //nfsjdgkssfdvc
+int main() { return 0; }  // nfsjdgkssfdvc

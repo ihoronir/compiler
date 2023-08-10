@@ -1,1 +1,1 @@
-int main(){return 2 + (1? 100 + 72 : 17);}
+int main() { return 2 + (1 ? 100 + 72 : 17); }

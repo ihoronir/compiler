@@ -1,1 +1,1 @@
-int main(){return _Alignof(int);}
+int main() { return _Alignof(int); }

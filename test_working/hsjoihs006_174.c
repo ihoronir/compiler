@@ -1,1 +1,1 @@
-int main(){return 175-(4-3);}
+int main() { return 175 - (4 - 3); }

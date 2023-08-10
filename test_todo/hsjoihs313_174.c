@@ -1,1 +1,4 @@
-int main(void){int p = 0; return (!p)*174; }
+int main(void) {
+    int p = 0;
+    return (!p) * 174;
+}

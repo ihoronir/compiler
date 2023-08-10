@@ -1,1 +1,3 @@
-int main(){/**/return 123;}
+int main() { /**/
+    return 123;
+}

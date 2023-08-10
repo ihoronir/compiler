@@ -1,1 +1,8 @@
-int main() {int a; int b; a = 3; b = 1; b *= (a += 5); return a + b + 158; }
+int main() {
+    int a;
+    int b;
+    a = 3;
+    b = 1;
+    b *= (a += 5);
+    return a + b + 158;
+}

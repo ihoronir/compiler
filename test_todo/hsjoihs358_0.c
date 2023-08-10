@@ -1,1 +1,1 @@
-int main() {return __func__[1] - 97;}
+int main() { return __func__[1] - 97; }
