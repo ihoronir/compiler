@@ -68,6 +68,12 @@ void tokenize(char *p) {
             continue;
         }
 
+        if (strncmp(p, "char", 4) == 0 && !is_alnum(p[4])) {
+            tokens_push(TK_CHAR, line, row);
+            p += 4;
+            continue;
+        }
+
         if (strncmp(p, "for", 3) == 0 && !is_alnum(p[3])) {
             tokens_push(TK_FOR, line, row);
             p += 3;

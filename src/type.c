@@ -49,6 +49,12 @@ Type new_type_int() {
     return type;
 }
 
+Type new_type_char() {
+    Type type = checked_malloc(sizeof(*type));
+    type->kind = TY_CHAR;
+    return type;
+}
+
 Type new_type_ptr(Type ptr_to) {
     Type type = checked_malloc(sizeof(*type));
     type->kind = TY_PTR;
