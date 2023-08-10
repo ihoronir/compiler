@@ -258,7 +258,7 @@ static UntypedExpr parse_assign(Scope scope) {
 // expr = assign
 static UntypedExpr parse_expr(Scope scope) { return parse_assign(scope); }
 
-// stmt = "int" ( "*" )* ident ("[" const_int "]")? ";")
+// stmt = "int" ( "*" )* ident ("[" const_int "]")? ( "=" expr )? ";")
 //      | ";"
 //      | "{" stmt* "}"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
@@ -270,6 +270,8 @@ static UntypedExpr parse_expr(Scope scope) { return parse_assign(scope); }
 static Stmt parse_stmt(Scope scope) {
     Type type = consume_type_specifier();
     if (type != NULL) {
+        Item item;
+
         for (;;) {
             if (consume(TK_ASTERISK)) {
                 type = new_type_ptr(type);
@@ -282,12 +284,26 @@ static Stmt parse_stmt(Scope scope) {
                     type = new_type_arr(type, arr_len);
                     expect(TK_RIGHT_SQ_BRACKET);
                 }
-                scope_def_local_var(scope, type, name);
+
+                item = scope_def_local_var(scope, type, name);
+
                 break;
             }
         }
-        expect(TK_SEMICOLON);
-        return NULL;
+
+        if (consume(TK_EQUAL)) {
+            UntypedExpr src = parse_expr(scope);
+            expect(TK_SEMICOLON);
+
+            UntypedExpr dst = new_untyped_expr_local_var(item);
+
+            return new_stmt_only_expr(
+                new_untyped_expr(EXP_ASSIGN, dst, src, NULL));
+
+        } else {
+            expect(TK_SEMICOLON);
+            return NULL;
+        }
     }
 
     // ";"

@@ -67,6 +67,13 @@ UntypedExpr new_untyped_expr_const_int(int val_int) {
     return untyped_expr;
 }
 
+UntypedExpr new_untyped_expr_local_var(Item item) {
+    UntypedExpr untyped_expr = checked_malloc(sizeof(*untyped_expr));
+    untyped_expr->kind = EXP_LOCAL_VAR;
+    untyped_expr->item = item;
+    return untyped_expr;
+}
+
 UntypedExpr new_untyped_expr_local_var_or_func_or_global_var(Scope scope,
                                                              char *name) {
     UntypedExpr untyped_expr = checked_malloc(sizeof(*untyped_expr));

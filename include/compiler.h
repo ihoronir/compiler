@@ -66,7 +66,7 @@ typedef struct token {
     int val_int;     // kind が TK_CONST_INT の場合、その数値
     char *str;       // kind が TK_IDENT の場合、その文字列
     int line;        // トークンの行
-    int column;         // トークンの列
+    int column;      // トークンの列
 } *Token;
 
 typedef enum {
@@ -266,6 +266,7 @@ UntypedExpr new_untyped_expr(ExprKind kind, ...);
 UntypedExpr new_untyped_expr_const_int(int val_int);
 UntypedExpr new_untyped_expr_string(StringItem string_item);
 // UntypedExpr new_untyped_expr_local_var(Scope scope, char *name);
+UntypedExpr new_untyped_expr_local_var(Item item);
 UntypedExpr new_untyped_expr_local_var_or_func_or_global_var(Scope scope,
                                                              char *name);
 UntypedExpr new_untyped_expr_local_var_with_def(Scope scope, Type type,
