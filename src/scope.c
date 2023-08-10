@@ -52,6 +52,13 @@ Item scope_def_func(Scope scope, Type type, char *name) {
     return item;
 }
 
+Item scope_def_global_var(Scope scope, Type type, char *name) {
+    if (get_item(scope, name) != NULL) error("同じ名前のアイテムがあります");
+    Item item = new_item_global_var(type, name);
+    vec_push(scope->items, item);
+    return item;
+}
+
 Item scope_def_local_var(Scope scope, Type type, char *name) {
     if (get_item(scope, name) != NULL) error("同じ名前のアイテムがあります");
     int size = type_size(type);

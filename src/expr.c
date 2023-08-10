@@ -40,6 +40,7 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
 
         case EXP_FUNC:
         case EXP_LOCAL_VAR:
+        case EXP_GLOBAL_VAR:
             te->type = ue->item->type;
             return te;
 

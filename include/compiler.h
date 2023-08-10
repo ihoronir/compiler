@@ -68,6 +68,7 @@ typedef struct token {
 typedef enum {
     EXP_CONST_INT,      // 定数
     EXP_LOCAL_VAR,      // ローカル変数
+    EXP_GLOBAL_VAR,     //
     EXP_FUNC,           //
     EXP_DEREF,          // *[0]
     EXP_ADDR,           // &[0]
@@ -160,7 +161,7 @@ typedef struct stmt {
     int val_int;  // kind が ND_CONST_INT の場合、その数値
 } *Stmt;
 
-typedef enum { TLD_FUNC_DEF } ToplevelDefinitionKind;
+typedef enum { TLD_FUNC_DEF, TLD_GLOBAL_VAR_DEF } ToplevelDefinitionKind;
 
 // トップレベル定義
 typedef struct toplevel_definition {
@@ -168,7 +169,7 @@ typedef struct toplevel_definition {
     Vec stmt_children;            // 子要素
     Vec untyped_expr_children;    //
     Vec typed_expr_children;      //
-    Item item;  // kind が ND_LOCAL_VAR, ND_CALL, ND_FUNC の場合、そのアイテム
+    Item item;
 } *ToplevelDefinition;
 
 // スコープの型
@@ -233,16 +234,19 @@ Scope new_scope(Scope parent);
 Item scope_get_item(Scope scope, char *name);
 Item scope_def_func(Scope scope, Type type, char *name);
 Item scope_def_local_var(Scope scope, Type type, char *name);
+Item scope_def_global_var(Scope scope, Type type, char *name);
 
 // item.c
 Item new_item_local_var(Type type, char *name, int offset);
+Item new_item_global_var(Type type, char *name);
 Item new_item_func(Type type, char *name);
 
 // expr.c
 UntypedExpr new_untyped_expr(ExprKind kind, ...);
 UntypedExpr new_untyped_expr_const_int(int val_int);
 // UntypedExpr new_untyped_expr_local_var(Scope scope, char *name);
-UntypedExpr new_untyped_expr_local_var_or_func(Scope scope, char *name);
+UntypedExpr new_untyped_expr_local_var_or_func_or_global_var(Scope scope,
+                                                             char *name);
 UntypedExpr new_untyped_expr_local_var_with_def(Scope scope, Type type,
                                                 char *name);
 UntypedExpr new_untyped_expr_call(Vec children);
@@ -252,6 +256,8 @@ ToplevelDefinition new_toplevel_definition_func(Scope scope, Type type,
                                                 char *name,
                                                 Vec untyped_expr_children,
                                                 Vec stmt_children);
+ToplevelDefinition new_toplevel_definition_global_var(Scope scope, Type type,
+                                                      char *name);
 
 // Stmt new_stmt(StmtKind kind, ...);
 Stmt new_stmt_only_expr(UntypedExpr untyped_expr);
