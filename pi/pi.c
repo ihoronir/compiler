@@ -15,7 +15,7 @@ int main() {
     base = 10000;  // 基底
     n = 8400;      // 計算項数
 
-    for (i = 0; i < n; i = i + 1) {
+    for (i = 0; i < n; i++) {
         numerator[i] = base / 5;
     }
 
