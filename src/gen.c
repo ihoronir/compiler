@@ -94,6 +94,8 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             assert(0);  // 冒頭の if により gen_address で対処される。
                         //
         case EXP_COMPOUND_ADD: {
+            print(depth, "# EXP_COMPOUND_ADD");
+
             TypedExpr dst = typed_expr_get_child(typed_expr, 0);
             TypedExpr src = typed_expr_get_child(typed_expr, 1);
 
