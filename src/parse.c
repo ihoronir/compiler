@@ -100,7 +100,7 @@ static UntypedExpr parse_primary(Scope scope) {
     return untyped_expr;
 }
 
-// postfix = primary ( "[" expr "]" |  "(" expr, expr, ... ")" )*
+// postfix = primary ( "[" expr "]" |  "(" expr, expr, ... ")" | "++" )*
 static UntypedExpr parse_postfix(Scope scope) {
     UntypedExpr untyped_expr = parse_primary(scope);
 
@@ -129,6 +129,13 @@ static UntypedExpr parse_postfix(Scope scope) {
             }
 
             untyped_expr = new_untyped_expr_call(children);
+
+        } else if (consume(TK_PLUS_PLUS)) {
+            untyped_expr = new_untyped_expr(
+                EXP_SUB,
+                new_untyped_expr(EXP_COMPOUND_ADD, untyped_expr,
+                                 new_untyped_expr_const_int(1), NULL),
+                new_untyped_expr_const_int(1), NULL);
 
         } else {
             return untyped_expr;

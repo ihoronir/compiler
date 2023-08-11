@@ -58,6 +58,7 @@ typedef enum {
     TK_EQUAL_EQUAL,       // "=="
     TK_EXCL_EQUAL,        // "!="
     TK_PLUS_EQUAL,        // "+="
+    TK_PLUS_PLUS,         // "++"
     TK_SIZEOF,            // "sizeof"
     TK_EOF,               // EOF
 } TokenKind;
