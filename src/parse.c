@@ -43,7 +43,7 @@ static void expect(TokenKind tk) {
     Token token = tokens_peek();
     if (token->kind != tk) {
         fprintf(stderr, "expected: %d, actuall: %d", tk, token->kind);
-        error_at(token->line, token->column, "期待される字句ではありません");
+        error_at(token->position, "期待される字句ではありません");
     }
     tokens_next();
 }
@@ -57,7 +57,7 @@ static Type expect_type_specifier() {
 static char *expect_ident() {
     Token token = tokens_peek();
     if (token->kind != TK_IDENT)
-        error_at(token->line, token->column, "識別子ではありません");
+        error_at(token->position, "識別子ではありません");
     tokens_next();
     return token->str;
 }
@@ -65,20 +65,20 @@ static char *expect_ident() {
 static int expect_const_int() {
     Token token = tokens_peek();
     if (token->kind != TK_CONST_INT)
-        error_at(token->line, token->column, "数ではありません");
+        error_at(token->position, "数ではありません");
     tokens_next();
     return token->val_int;
 }
 
-static UntypedExpr parse_expr(Scope scope);
+static UntypedExpr parse_expression(Scope scope);
 
 // primary = "(" expr ")"
-//         | ident
-//         | string
-//         | num
+//         | TK_IDENT
+//         | TK_STRING
+//         | TK_CONST_INT
 static UntypedExpr parse_primary(Scope scope) {
     if (consume(TK_LEFT_PAREN)) {
-        UntypedExpr untyped_expr = parse_expr(scope);
+        UntypedExpr untyped_expr = parse_expression(scope);
         expect(TK_RIGHT_PAREN);
         return untyped_expr;
     }
@@ -95,7 +95,6 @@ static UntypedExpr parse_primary(Scope scope) {
         return new_untyped_expr_string(string_item);
     }
 
-    // そうでなければ数値のはず
     UntypedExpr untyped_expr = new_untyped_expr_const_int(expect_const_int());
     return untyped_expr;
 }
@@ -105,14 +104,14 @@ static UntypedExpr parse_postfix(Scope scope) {
     UntypedExpr untyped_expr = parse_primary(scope);
 
     for (;;) {
-        if (consume(TK_LEFT_SQ_BRACKET)) {
-            UntypedExpr index = parse_expr(scope);
-            expect(TK_RIGHT_SQ_BRACKET);
+        if (consume(TK_LEFT_BRACKET)) {
+            UntypedExpr index = parse_expression(scope);
+            expect(TK_RIGHT_BRACKET);
 
             UntypedExpr add =
-                new_untyped_expr(EXP_ADD, untyped_expr, index, NULL);
+                new_untyped_expr(EXPR_ADD, untyped_expr, index, NULL);
 
-            UntypedExpr deref = new_untyped_expr(EXP_DEREF, add, NULL);
+            UntypedExpr deref = new_untyped_expr(EXPR_DEREF, add, NULL);
 
             untyped_expr = deref;
 
@@ -122,7 +121,7 @@ static UntypedExpr parse_postfix(Scope scope) {
 
             if (!consume(TK_RIGHT_PAREN)) {
                 do {
-                    vec_push(children, parse_expr(scope));
+                    vec_push(children, parse_expression(scope));
                 } while (consume(TK_COMMA));
 
                 expect(TK_RIGHT_PAREN);
@@ -132,8 +131,8 @@ static UntypedExpr parse_postfix(Scope scope) {
 
         } else if (consume(TK_PLUS_PLUS)) {
             untyped_expr = new_untyped_expr(
-                EXP_SUB,
-                new_untyped_expr(EXP_COMPOUND_ADD, untyped_expr,
+                EXPR_SUB,
+                new_untyped_expr(EXPR_COMPOUND_ADD, untyped_expr,
                                  new_untyped_expr_const_int(1), NULL),
                 new_untyped_expr_const_int(1), NULL);
 
@@ -148,20 +147,20 @@ static UntypedExpr parse_postfix(Scope scope) {
 //       | postfix
 static UntypedExpr parse_unary(Scope scope) {
     if (consume(TK_SIZEOF)) {
-        return new_untyped_expr(EXP_SIZEOF, parse_unary(scope), NULL);
+        return new_untyped_expr(EXPR_SIZEOF, parse_unary(scope), NULL);
 
     } else if (consume(TK_PLUS)) {
         return parse_unary(scope);
 
     } else if (consume(TK_MINUS)) {
-        return new_untyped_expr(EXP_SUB, new_untyped_expr_const_int(0),
+        return new_untyped_expr(EXPR_SUB, new_untyped_expr_const_int(0),
                                 parse_unary(scope), NULL);
 
     } else if (consume(TK_ASTERISK)) {
-        return new_untyped_expr(EXP_DEREF, parse_unary(scope), NULL);
+        return new_untyped_expr(EXPR_DEREF, parse_unary(scope), NULL);
 
     } else if (consume(TK_AND)) {
-        return new_untyped_expr(EXP_ADDR, parse_unary(scope), NULL);
+        return new_untyped_expr(EXPR_ADDR, parse_unary(scope), NULL);
     }
 
     return parse_postfix(scope);
@@ -173,15 +172,15 @@ static UntypedExpr parse_mul(Scope scope) {
 
     for (;;) {
         if (consume(TK_ASTERISK)) {
-            untyped_expr = new_untyped_expr(EXP_MUL, untyped_expr,
+            untyped_expr = new_untyped_expr(EXPR_MUL, untyped_expr,
                                             parse_unary(scope), NULL);
 
         } else if (consume(TK_SLASH)) {
-            untyped_expr = new_untyped_expr(EXP_DIV, untyped_expr,
+            untyped_expr = new_untyped_expr(EXPR_DIV, untyped_expr,
                                             parse_unary(scope), NULL);
 
         } else if (consume(TK_PERCENT)) {
-            untyped_expr = new_untyped_expr(EXP_MOD, untyped_expr,
+            untyped_expr = new_untyped_expr(EXPR_MOD, untyped_expr,
                                             parse_unary(scope), NULL);
 
         } else {
@@ -191,17 +190,17 @@ static UntypedExpr parse_mul(Scope scope) {
 }
 
 // add = mul ("+" mul | "-" mul)*
-static UntypedExpr parse_add(Scope scope) {
+static UntypedExpr parse_additive(Scope scope) {
     UntypedExpr untyped_expr = parse_mul(scope);
 
     for (;;) {
         if (consume(TK_PLUS)) {
-            untyped_expr =
-                new_untyped_expr(EXP_ADD, untyped_expr, parse_mul(scope), NULL);
+            untyped_expr = new_untyped_expr(EXPR_ADD, untyped_expr,
+                                            parse_mul(scope), NULL);
 
         } else if (consume(TK_MINUS)) {
-            untyped_expr =
-                new_untyped_expr(EXP_SUB, untyped_expr, parse_mul(scope), NULL);
+            untyped_expr = new_untyped_expr(EXPR_SUB, untyped_expr,
+                                            parse_mul(scope), NULL);
 
         } else {
             return untyped_expr;
@@ -211,24 +210,24 @@ static UntypedExpr parse_add(Scope scope) {
 
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
 static UntypedExpr parse_relational(Scope scope) {
-    UntypedExpr untyped_expr = parse_add(scope);
+    UntypedExpr untyped_expr = parse_additive(scope);
 
     for (;;) {
         if (consume(TK_LESS)) {
-            untyped_expr = new_untyped_expr(EXP_LESS, untyped_expr,
-                                            parse_add(scope), NULL);
+            untyped_expr = new_untyped_expr(EXPR_LESS, untyped_expr,
+                                            parse_additive(scope), NULL);
 
         } else if (consume(TK_LESS_EQUAL)) {
-            untyped_expr = new_untyped_expr(EXP_LESS_OR_EQUAL, untyped_expr,
-                                            parse_add(scope), NULL);
+            untyped_expr = new_untyped_expr(EXPR_LESS_OR_EQUAL, untyped_expr,
+                                            parse_additive(scope), NULL);
 
         } else if (consume(TK_MORE)) {
-            untyped_expr = new_untyped_expr(EXP_LESS, parse_add(scope),
+            untyped_expr = new_untyped_expr(EXPR_LESS, parse_additive(scope),
                                             untyped_expr, NULL);
 
         } else if (consume(TK_MORE_EQUAL)) {
-            untyped_expr = new_untyped_expr(EXP_LESS_OR_EQUAL, parse_add(scope),
-                                            untyped_expr, NULL);
+            untyped_expr = new_untyped_expr(
+                EXPR_LESS_OR_EQUAL, parse_additive(scope), untyped_expr, NULL);
 
         } else {
             return untyped_expr;
@@ -242,11 +241,11 @@ static UntypedExpr parse_equality(Scope scope) {
 
     for (;;) {
         if (consume(TK_EQUAL_EQUAL)) {
-            untyped_expr = new_untyped_expr(EXP_EQUAL, untyped_expr,
+            untyped_expr = new_untyped_expr(EXPR_EQUAL, untyped_expr,
                                             parse_relational(scope), NULL);
 
         } else if (consume(TK_EXCL_EQUAL)) {
-            untyped_expr = new_untyped_expr(EXP_NOT_EQUAL, untyped_expr,
+            untyped_expr = new_untyped_expr(EXPR_NOT_EQUAL, untyped_expr,
                                             parse_relational(scope), NULL);
 
         } else {
@@ -259,10 +258,10 @@ static UntypedExpr parse_assign(Scope scope) {
     UntypedExpr untyped_expr = parse_equality(scope);
 
     if (consume(TK_EQUAL)) {
-        untyped_expr = new_untyped_expr(EXP_ASSIGN, untyped_expr,
+        untyped_expr = new_untyped_expr(EXPR_ASSIGN, untyped_expr,
                                         parse_assign(scope), NULL);
     } else if (consume(TK_PLUS_EQUAL)) {
-        untyped_expr = new_untyped_expr(EXP_COMPOUND_ADD, untyped_expr,
+        untyped_expr = new_untyped_expr(EXPR_COMPOUND_ADD, untyped_expr,
                                         parse_assign(scope), NULL);
     }
 
@@ -270,7 +269,7 @@ static UntypedExpr parse_assign(Scope scope) {
 }
 
 // expr = assign
-static UntypedExpr parse_expr(Scope scope) { return parse_assign(scope); }
+static UntypedExpr parse_expression(Scope scope) { return parse_assign(scope); }
 
 // stmt = "int" ( "*" )* ident ("[" const_int "]")? ( "=" expr )? ";")
 //      | ";"
@@ -293,10 +292,10 @@ static Stmt parse_stmt(Scope scope) {
             } else {
                 char *name = expect_ident();
 
-                if (consume(TK_LEFT_SQ_BRACKET)) {
+                if (consume(TK_LEFT_BRACKET)) {
                     int arr_len = expect_const_int();
                     type = new_type_arr(type, arr_len);
-                    expect(TK_RIGHT_SQ_BRACKET);
+                    expect(TK_RIGHT_BRACKET);
                 }
 
                 item = scope_def_local_var(scope, type, name);
@@ -306,13 +305,13 @@ static Stmt parse_stmt(Scope scope) {
         }
 
         if (consume(TK_EQUAL)) {
-            UntypedExpr src = parse_expr(scope);
+            UntypedExpr src = parse_expression(scope);
             expect(TK_SEMICOLON);
 
             UntypedExpr dst = new_untyped_expr_local_var(item);
 
             return new_stmt_only_expr(
-                new_untyped_expr(EXP_ASSIGN, dst, src, NULL));
+                new_untyped_expr(EXPR_ASSIGN, dst, src, NULL));
 
         } else {
             expect(TK_SEMICOLON);
@@ -341,7 +340,7 @@ static Stmt parse_stmt(Scope scope) {
     // "if" "(" expr ")" stmt ("else" stmt)?
     if (consume(TK_IF)) {
         expect(TK_LEFT_PAREN);
-        UntypedExpr cond = parse_expr(scope);
+        UntypedExpr cond = parse_expression(scope);
         expect(TK_RIGHT_PAREN);
         Stmt then = parse_stmt(scope);
 
@@ -356,7 +355,7 @@ static Stmt parse_stmt(Scope scope) {
     // "while" "(" expr ")" stmt
     if (consume(TK_WHILE)) {
         expect(TK_LEFT_PAREN);
-        UntypedExpr cond = parse_expr(scope);
+        UntypedExpr cond = parse_expression(scope);
         expect(TK_RIGHT_PAREN);
 
         return new_stmt_while(cond, parse_stmt(scope));
@@ -371,7 +370,7 @@ static Stmt parse_stmt(Scope scope) {
             init = NULL;
 
         } else {
-            init = parse_expr(scope);
+            init = parse_expression(scope);
             expect(TK_SEMICOLON);
         }
 
@@ -380,7 +379,7 @@ static Stmt parse_stmt(Scope scope) {
             cond = new_untyped_expr_const_int(1);
 
         } else {
-            cond = parse_expr(scope);
+            cond = parse_expression(scope);
             expect(TK_SEMICOLON);
         }
 
@@ -389,7 +388,7 @@ static Stmt parse_stmt(Scope scope) {
             update = NULL;
 
         } else {
-            update = parse_expr(scope);
+            update = parse_expression(scope);
             expect(TK_RIGHT_PAREN);
         }
 
@@ -398,13 +397,13 @@ static Stmt parse_stmt(Scope scope) {
 
     // "return" expr ";"
     if (consume(TK_RETURN)) {
-        Stmt stmt = new_stmt_return(parse_expr(scope));
+        Stmt stmt = new_stmt_return(parse_expression(scope));
         expect(TK_SEMICOLON);
         return stmt;
     }
 
     // expr ";"
-    Stmt stmt = new_stmt_only_expr(parse_expr(scope));
+    Stmt stmt = new_stmt_only_expr(parse_expression(scope));
     expect(TK_SEMICOLON);
     return stmt;
 }
@@ -478,10 +477,10 @@ static ToplevelDefinition parse_toplevel_definition(Scope scope) {
         }
 
     } else {
-        if (consume(TK_LEFT_SQ_BRACKET)) {
+        if (consume(TK_LEFT_BRACKET)) {
             int arr_len = expect_const_int();
             type = new_type_arr(type, arr_len);
-            expect(TK_RIGHT_SQ_BRACKET);
+            expect(TK_RIGHT_BRACKET);
         }
         expect(TK_SEMICOLON);
         return new_toplevel_definition_global_var(scope, type, name);

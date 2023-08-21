@@ -1,7 +1,7 @@
 #include "compiler.h"
 
-// te->type が TY_ARR ならば、その te を子供に持つ EXP_DECAY
-// を作る その EXP_DECAY は TY_PTR である
+// te->type が TY_ARR ならば、その te を子供に持つ EXPR_DECAY
+// を作る その EXPR_DECAY は TY_PTR である
 TypedExpr decay_if_array(TypedExpr te) {
     if (te->type->kind != TY_ARR) return te;
 
@@ -9,7 +9,7 @@ TypedExpr decay_if_array(TypedExpr te) {
     new_te->children = new_vec_with_capacity(1);
     vec_push(new_te->children, te);
     new_te->type = new_type_ptr(te->type->ptr_to);
-    new_te->kind = EXP_DECAY;
+    new_te->kind = EXPR_DECAY;
     return new_te;
 }
 
@@ -19,11 +19,11 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
     te->item = ue->item;
 
     switch (ue->kind) {
-        case EXP_DECAY:
+        case EXPR_DECAY:
             assert(0);
 
-        case EXP_SIZEOF: {
-            te->kind = EXP_CONST_INT;
+        case EXPR_SIZEOF: {
+            te->kind = EXPR_CONST_INT;
 
             UntypedExpr u_child = untyped_expr_get_child(ue, 0);
             TypedExpr t_child = to_typed_expr(u_child);
@@ -33,24 +33,24 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
             return te;
         }
 
-        case EXP_CONST_INT:
+        case EXPR_CONST_INT:
             te->val_int = ue->val_int;
             te->type = new_type_int();
             return te;
 
-        case EXP_STRING:
+        case EXPR_STRING:
             te->type =
                 new_type_arr(new_type_char(), strlen(ue->string_item->str) + 1);
             te->string_item = ue->string_item;
             return te;
 
-        case EXP_FUNC:
-        case EXP_LOCAL_VAR:
-        case EXP_GLOBAL_VAR:
+        case EXPR_FUNC:
+        case EXPR_LOCAL_VAR:
+        case EXPR_GLOBAL_VAR:
             te->type = ue->item->type;
             return te;
 
-        case EXP_DEREF: {
+        case EXPR_DEREF: {
             UntypedExpr u_child = untyped_expr_get_child(ue, 0);
             TypedExpr t_child = decay_if_array(to_typed_expr(u_child));
             if (t_child->type->kind != TY_PTR)
@@ -62,7 +62,7 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
             return te;
         }
 
-        case EXP_ADDR: {
+        case EXPR_ADDR: {
             UntypedExpr u_child = untyped_expr_get_child(ue, 0);
             // decay_if_array しない！！
             TypedExpr t_child = to_typed_expr(u_child);
@@ -73,9 +73,9 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
             return te;
         }
 
-        case EXP_DIV:
-        case EXP_MUL:
-        case EXP_MOD: {
+        case EXPR_DIV:
+        case EXPR_MUL:
+        case EXPR_MOD: {
             UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
             TypedExpr t_lhs = decay_if_array(to_typed_expr(u_lhs));
 
@@ -92,7 +92,7 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
             return te;
         }
 
-        case EXP_ADD: {
+        case EXPR_ADD: {
             UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
             TypedExpr t_lhs = decay_if_array(to_typed_expr(u_lhs));
 
@@ -114,7 +114,7 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
                 vec_push(te->children, t_lhs);
                 int size = type_size(t_lhs->type->ptr_to);
                 TypedExpr multiplied = to_typed_expr(new_untyped_expr(
-                    EXP_MUL, u_rhs, new_untyped_expr_const_int(size), NULL));
+                    EXPR_MUL, u_rhs, new_untyped_expr_const_int(size), NULL));
                 vec_push(te->children, multiplied);
 
             } else if (type_is_integer(t_lhs->type) &&
@@ -124,7 +124,7 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
                 te->children = new_vec_with_capacity(2);
                 int size = type_size(t_rhs->type->ptr_to);
                 TypedExpr multiplied = to_typed_expr(new_untyped_expr(
-                    EXP_MUL, u_lhs, new_untyped_expr_const_int(size), NULL));
+                    EXPR_MUL, u_lhs, new_untyped_expr_const_int(size), NULL));
                 vec_push(te->children, multiplied);
                 vec_push(te->children, t_rhs);
             } else {
@@ -134,7 +134,7 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
             return te;
         }
 
-        case EXP_SUB: {
+        case EXPR_SUB: {
             UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
             TypedExpr t_lhs = decay_if_array(to_typed_expr(u_lhs));
 
@@ -154,10 +154,10 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
             }
         }
 
-        case EXP_LESS_OR_EQUAL:
-        case EXP_EQUAL:
-        case EXP_NOT_EQUAL:
-        case EXP_LESS: {
+        case EXPR_LESS_OR_EQUAL:
+        case EXPR_EQUAL:
+        case EXPR_NOT_EQUAL:
+        case EXPR_LESS: {
             UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
             TypedExpr t_lhs = decay_if_array(to_typed_expr(u_lhs));
 
@@ -174,7 +174,7 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
             return te;
         }
 
-        case EXP_ASSIGN: {
+        case EXPR_ASSIGN: {
             UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
             TypedExpr t_lhs = to_typed_expr(u_lhs);
             if (t_lhs->type->kind == TY_ARR)
@@ -195,7 +195,7 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
             return te;
         }
 
-        case EXP_COMPOUND_ADD: {
+        case EXPR_COMPOUND_ADD: {
             UntypedExpr u_lhs = untyped_expr_get_child(ue, 0);
             TypedExpr t_lhs = to_typed_expr(u_lhs);
             if (t_lhs->type->kind == TY_ARR)
@@ -214,7 +214,7 @@ TypedExpr to_typed_expr(UntypedExpr ue) {
             return te;
         }
 
-        case EXP_CALL: {
+        case EXPR_CALL: {
             UntypedExpr func = untyped_expr_get_child(ue, 0);
             if (func->item->type->kind != TY_FUNC)
                 error("関数以外は呼べません");

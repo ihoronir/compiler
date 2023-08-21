@@ -9,8 +9,8 @@ void error(char *fmt, ...) {
     exit(EXIT_FAILURE);
 }
 
-void error_at(int line, int column, char *msg) {
-    fprintf(stderr, "(%d, %d) %s\n", line, column, msg);
+void error_at(struct position position, char *msg) {
+    fprintf(stderr, "(%d, %d) %s\n", position.row, position.column, msg);
     exit(EXIT_FAILURE);
 }
 

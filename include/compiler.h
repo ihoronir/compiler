@@ -8,59 +8,74 @@
 #include <stdnoreturn.h>
 #include <string.h>
 
-// ポインタの可変長バッファ
+//////////////////////////////////////////////////////////////////////////////////////////////
+//////// Utility
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+// ポインタのベクタ
 typedef struct vec {
     void **buf;
     int len;
     int capacity;
 } *Vec;
 
-extern Vec string_storage;
-
-// char の可変長バッファ
+// char のベクタ
 typedef struct string {
     char *buf;
     int len;
     int capacity;
 } *String;
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+//////// Position
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+struct position {
+    int row;
+    int column;
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+//////// Token
+//////////////////////////////////////////////////////////////////////////////////////////////
+
 // トークンの種類
 typedef enum {
-    TK_RETURN,            // "return"
-    TK_IF,                // "if"
-    TK_ELSE,              // "else"
-    TK_WHILE,             // "while"
-    TK_FOR,               // "for"
-    TK_INT,               // "int"
-    TK_CHAR,              // "char"
-    TK_CONST_INT,         // "10" などの整数
-    TK_IDENT,             // "a" などの識別子
-    TK_STRING,            // 文字列リテラル
-    TK_SEMICOLON,         // ";"
-    TK_COMMA,             // ","
-    TK_EQUAL,             // "="
-    TK_AND,               // "&"
-    TK_LEFT_PAREN,        // "("
-    TK_RIGHT_PAREN,       // ")"
-    TK_LEFT_BRACE,        // "{"
-    TK_RIGHT_BRACE,       // "}"
-    TK_LEFT_SQ_BRACKET,   // "["
-    TK_RIGHT_SQ_BRACKET,  // "]"
-    TK_PLUS,              // "+"
-    TK_MINUS,             // "-"
-    TK_ASTERISK,          // "*"
-    TK_SLASH,             // "/"
-    TK_PERCENT,           // "%"
-    TK_LESS,              // "<"
-    TK_MORE,              // ">"
-    TK_LESS_EQUAL,        // "<="
-    TK_MORE_EQUAL,        // ">="
-    TK_EQUAL_EQUAL,       // "=="
-    TK_EXCL_EQUAL,        // "!="
-    TK_PLUS_EQUAL,        // "+="
-    TK_PLUS_PLUS,         // "++"
-    TK_SIZEOF,            // "sizeof"
-    TK_EOF,               // EOF
+    TK_RETURN,         // "return"
+    TK_IF,             // "if"
+    TK_ELSE,           // "else"
+    TK_WHILE,          // "while"
+    TK_FOR,            // "for"
+    TK_INT,            // "int"
+    TK_CHAR,           // "char"
+    TK_CONST_INT,      // "10" などの整数
+    TK_IDENT,          // "a" などの識別子
+    TK_STRING,         // 文字列リテラル
+    TK_SEMICOLON,      // ";"
+    TK_COMMA,          // ","
+    TK_EQUAL,          // "="
+    TK_AND,            // "&"
+    TK_LEFT_PAREN,     // "("
+    TK_RIGHT_PAREN,    // ")"
+    TK_LEFT_BRACE,     // "{"
+    TK_RIGHT_BRACE,    // "}"
+    TK_LEFT_BRACKET,   // "["
+    TK_RIGHT_BRACKET,  // "]"
+    TK_PLUS,           // "+"
+    TK_MINUS,          // "-"
+    TK_ASTERISK,       // "*"
+    TK_SLASH,          // "/"
+    TK_PERCENT,        // "%"
+    TK_LESS,           // "<"
+    TK_MORE,           // ">"
+    TK_LESS_EQUAL,     // "<="
+    TK_MORE_EQUAL,     // ">="
+    TK_EQUAL_EQUAL,    // "=="
+    TK_EXCL_EQUAL,     // "!="
+    TK_PLUS_EQUAL,     // "+="
+    TK_PLUS_PLUS,      // "++"
+    TK_SIZEOF,         // "sizeof"
+    TK_EOF,            // EOF
 } TokenKind;
 
 // トークン
@@ -68,62 +83,137 @@ typedef struct token {
     TokenKind kind;  // トークンの種類
     int val_int;     // kind が TK_CONST_INT の場合、その数値
     char *str;       // kind が TK_IDENT の場合、その文字列
-    int line;        // トークンの行
-    int column;      // トークンの列
+    struct position position;
 } *Token;
 
-typedef enum {
-    EXP_CONST_INT,      // 定数
-    EXP_LOCAL_VAR,      // ローカル変数
-    EXP_GLOBAL_VAR,     //
-    EXP_FUNC,           //
-    EXP_STRING,         //
-    EXP_DEREF,          // *[0]
-    EXP_ADDR,           // &[0]
-    EXP_MUL,            // [0] * [1]
-    EXP_DIV,            // [0] / [1]
-    EXP_MOD,            // [0] % [1]
-    EXP_ADD,            // [0] + [1]
-    EXP_SUB,            // [0] - [1]
-    EXP_LESS,           // [0] < [1]
-    EXP_LESS_OR_EQUAL,  // [0] <= [1]
-    EXP_COMPOUND_ADD,   // [0] += [b]
-    EXP_EQUAL,          // [0] == [1]
-    EXP_NOT_EQUAL,      // [0] != [1]
-    EXP_ASSIGN,         // [0] = [1]
-    EXP_CALL,           // 関数呼び出し [0] ([1], [2], [3]),
-    EXP_SIZEOF,         //
-    EXP_DECAY,          //
-} ExprKind;
+//////////////////////////////////////////////////////////////////////////////////////////////
+//////// Type
+//////////////////////////////////////////////////////////////////////////////////////////////
 
-typedef enum {
-    STMT_RETURN,    // return [0]
-    STMT_IF,        // if ([0]) [1]
-    STMT_IF_ELSE,   // if ([0]) [1] else [2]
-    STMT_WHILE,     // while ([0]) [1]
-    STMT_FOR,       // for ([0]; [1]; [2]) [3]
-    STMT_BLOCK,     // ブロック { [0] [1] [2] ...}
-    STMT_ONLY_EXPR  //
-} StmtKind;
+// 型の種類
+typedef enum { TY_INT, TY_CHAR, TY_FUNC, TY_ARR, TY_PTR } TypeKind;
 
-typedef struct item *Item;
+// 型の型
+typedef struct type {
+    TypeKind kind;
+    struct type *ptr_to;
+    struct type *returning;
+    int arr_len;
+} *Type;
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+//////// Item
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+// アイテムの種類
+typedef enum {
+    IT_FUNC,
+    IT_TYPEDEF,
+    IT_GLOBAL_VAR,
+    IT_LOCAL_VAR,
+} ItemKind;
+
+// アイテムの型
+typedef struct item {
+    ItemKind kind;  // アイテムの種類
+    Type type;  // kind が IT_LOCAL_VAR または IT_GLOBAL_VAR の場合、その型
+    char *name;  // アイテムの名前
+    int size;    // kind がIT_FUNC の場合、そのサイズ
+    int offset;  // kind が IT_LOCAL_VAR の場合、そのオフセット
+} *Item;
+
+// スコープの型
+typedef struct scope {
+    struct scope *parent;  // 親スコープ
+    Vec items;             // スコープに登録されているアイテム
+    Item func;  // ルートスコープでない場合、属する関数
+} *Scope;
 
 typedef struct string_item {
     int label;
     char *str;
 } *StringItem;
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+//////// Expression & Statement
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+typedef enum {
+    EXPR_CONST_INT,      // 定数
+    EXPR_LOCAL_VAR,      // ローカル変数
+    EXPR_GLOBAL_VAR,     //
+    EXPR_FUNC,           //
+    EXPR_STRING,         //
+    EXPR_DEREF,          // *(expr[0])
+    EXPR_ADDR,           // &(expr[0])
+    EXPR_MUL,            // (expr[0]) *  (expr[1])
+    EXPR_DIV,            // (expr[0]) /  (expr[1])
+    EXPR_MOD,            // (expr[0]) %  (expr[1])
+    EXPR_ADD,            // (expr[0]) +  (expr[1])
+    EXPR_SUB,            // (expr[0]) -  (expr[1])
+    EXPR_LESS,           // (expr[0]) <  (expr[1])
+    EXPR_LESS_OR_EQUAL,  // (expr[0]) <= (expr[1])
+    EXPR_COMPOUND_ADD,   // (expr[0]) += (expr[1])
+    EXPR_EQUAL,          // (expr[0]) == (expr[1])
+    EXPR_NOT_EQUAL,      // (expr[0]) != (expr[1])
+    EXPR_ASSIGN,         // (expr[0]) =  (expr[1])
+    EXPR_CALL,           // (expr[0]) ( (expr[1]) , (expr[2]) , (expr[3]) )
+    EXPR_SIZEOF,         // sizeof [0]
+    EXPR_DECAY,          //
+} ExprKind;
+
 StringItem new_string_item(char *str);
 
 // 式
 typedef struct untyped_expr {
-    ExprKind kind;  // ノードの種類
-    Vec children;   // 子要素
-    // Token token;    // 対応するトークン
+    ExprKind kind;
+    Vec children;
     Item item;
     int val_int;
     StringItem string_item;
 } *UntypedExpr;
+
+typedef struct typed_expr {
+    ExprKind kind;
+    Vec children;
+    Item item;
+    Type type;
+    int val_int;
+    StringItem string_item;
+} *TypedExpr;
+
+typedef enum {
+    STMT_RETURN,    // return expr[0]
+    STMT_IF,        // if ( [0] ) [1]
+    STMT_IF_ELSE,   // if ( [0] ) [1] else [2]
+    STMT_WHILE,     // while ( [0] ) [1]
+    STMT_FOR,       // for ( [0] ; [1] ; [2] ) [3]
+    STMT_BLOCK,     // { [0] [1] [2] ... }
+    STMT_ONLY_EXPR  // [0] ;
+} StmtKind;
+
+// 文
+typedef struct stmt {
+    StmtKind kind;
+    Vec stmt_children;
+    Vec untyped_expr_children;
+    Vec typed_expr_children;
+} *Stmt;
+
+typedef enum { TLD_FUNC_DEF, TLD_GLOBAL_VAR_DEF } ToplevelDefinitionKind;
+
+// トップレベル定義
+typedef struct toplevel_definition {
+    ToplevelDefinitionKind kind;
+    Vec stmt_children;
+    Vec untyped_expr_children;
+    Vec typed_expr_children;
+    Item item;
+} *ToplevelDefinition;
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+//////// Register
+//////////////////////////////////////////////////////////////////////////////////////////////
 
 typedef enum {
     REG_RAX = 0,
@@ -144,91 +234,23 @@ typedef enum {
     REG_R15 = 15
 } RegKind;
 
-// 型の種類
-typedef enum { TY_INT, TY_CHAR, TY_FUNC, TY_ARR, TY_PTR } TypeKind;
-
-// 型の型
-typedef struct type {
-    TypeKind kind;
-    struct type *ptr_to;
-    struct type *returning;
-    int arr_len;
-} *Type;
-
-typedef struct typed_expr {
-    ExprKind kind;  // ノードの種類
-    Vec children;   // 子要素
-    // Token token;    // 対応するトークン
-    Item item;
-    Type type;
-    StringItem string_item;
-    int val_int;
-} *TypedExpr;
-
-// 文
-typedef struct stmt {
-    StmtKind kind;              // ノードの種類
-    Vec stmt_children;          // 子要素
-    Vec untyped_expr_children;  //
-    Vec typed_expr_children;    //
-    // Token token;    // 対応するトークン
-    // Expr typed_expr;
-    Item item;  // kind が ND_LOCAL_VAR, ND_CALL, ND_FUNC の場合、そのアイテム
-    int val_int;  // kind が ND_CONST_INT の場合、その数値
-} *Stmt;
-
-typedef enum { TLD_FUNC_DEF, TLD_GLOBAL_VAR_DEF } ToplevelDefinitionKind;
-
-// トップレベル定義
-typedef struct toplevel_definition {
-    ToplevelDefinitionKind kind;  // ノードの種類
-    Vec stmt_children;            // 子要素
-    Vec untyped_expr_children;    //
-    Vec typed_expr_children;      //
-    Item item;
-} *ToplevelDefinition;
-
-// スコープの型
-typedef struct scope {
-    struct scope *parent;  // 親スコープ
-    Vec items;             // スコープに登録されているアイテム
-    Item func;  // ルートスコープでない場合、属する関数
-} *Scope;
-
-// アイテムの種類
-typedef enum {
-    IT_FUNC,
-    IT_TYPEDEF,
-    IT_GLOBAL_VAR,
-    IT_LOCAL_VAR,
-} ItemKind;
-
-// アイテムの型
-struct item {
-    ItemKind kind;  // アイテムの種類
-    Type type;  // kind が IT_LOCAL_VAR または IT_GLOBAL_VAR の場合、その型
-    char *name;  // アイテムの名前
-    int size;    // kind がIT_FUNC の場合、そのサイズ
-    int offset;  // kind が IT_LOCAL_VAR の場合、そのオフセット
-};
-
 // main.c
 void error(char *fmt, ...) __attribute__((__noreturn__));
-void error_at(int line, int column, char *msg);
+void error_at(struct position position, char *msg);
 void *checked_malloc(unsigned long len);
 void *checked_realloc(void *ptr, unsigned long len);
 
 // token.c
-Token new_token(TokenKind kind, int line, int column);
-Token new_token_const_int(int val, int line, int column);
-Token new_token_ident(char *str, int line, int column);
-Token new_token_string(char *str, int line, int column);
+Token new_token(TokenKind kind, struct position position);
+Token new_token_const_int(int val, struct position position);
+Token new_token_ident(char *str, struct position position);
+Token new_token_string(char *str, struct position position);
 
 // tokens.c
-void tokens_push(TokenKind kind, int line, int column);
-void tokens_push_const_int(int val, int line, int column);
-void tokens_push_ident(char *str, int line, int column);
-void tokens_push_string(char *str, int line, int column);
+void tokens_push(TokenKind kind, struct position position);
+void tokens_push_const_int(int val, struct position position);
+void tokens_push_ident(char *str, struct position position);
+void tokens_push_string(char *str, struct position position);
 Token tokens_next();
 Token tokens_peek();
 
@@ -322,3 +344,9 @@ void vec_push(Vec vec, void *ptr);
 String new_string_with_capacity(int capacity);
 String new_string();
 void string_push(String string, char c);
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+//////// Extern
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+extern Vec string_storage;

@@ -45,27 +45,27 @@ static void gen_address(TypedExpr typed_expr, int depth) {
     int depth_initial = depth;
 
     switch (typed_expr->kind) {
-        case EXP_LOCAL_VAR:
-            print(depth, "# gen_address: EXP_LOCAL_VAR");
+        case EXPR_LOCAL_VAR:
+            print(depth, "# gen_address: EXPR_LOCAL_VAR");
             print(depth, "mov rax, rbp");
             print(depth, "sub rax, %d", typed_expr->item->offset);
             print(depth++, "push rax");
             break;
 
-        case EXP_GLOBAL_VAR:
-            print(depth, "# gen_address: EXP_GLOBAL_VAR");
+        case EXPR_GLOBAL_VAR:
+            print(depth, "# gen_address: EXPR_GLOBAL_VAR");
             print(depth, "lea rax, [rip + %s]", typed_expr->item->name);
             print(depth++, "push rax");
             break;
 
-        case EXP_DEREF:
-            print(depth, "# gen_address: EXP_DEREF");
+        case EXPR_DEREF:
+            print(depth, "# gen_address: EXPR_DEREF");
             gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
             break;
 
-        case EXP_STRING:
+        case EXPR_STRING:
             // gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
-            print(depth, "# gen_address: EXP_STRING");
+            print(depth, "# gen_address: EXPR_STRING");
             print(depth, "lea rax, [rip + .LC%d]",
                   typed_expr->string_item->label);
             print(depth++, "push rax");
@@ -87,14 +87,14 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
     }
 
     switch (typed_expr->kind) {
-        case EXP_SIZEOF:
+        case EXPR_SIZEOF:
             assert(0);  // ここに来る前に整数に置き換えられている
 
-        case EXP_STRING:
+        case EXPR_STRING:
             assert(0);  // 冒頭の if により gen_address で対処される。
                         //
-        case EXP_COMPOUND_ADD: {
-            print(depth, "# EXP_COMPOUND_ADD");
+        case EXPR_COMPOUND_ADD: {
+            print(depth, "# EXPR_COMPOUND_ADD");
 
             TypedExpr dst = typed_expr_get_child(typed_expr, 0);
             TypedExpr src = typed_expr_get_child(typed_expr, 1);
@@ -120,16 +120,16 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             print(depth++, "push rax");
         } break;
 
-        case EXP_FUNC:
+        case EXPR_FUNC:
             error("関数名を値としてはつかえません");
 
-        case EXP_DECAY:
-            print(depth, "# EXP_DECAY");
+        case EXPR_DECAY:
+            print(depth, "# EXPR_DECAY");
             gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
             break;
 
-        case EXP_CALL:
-            print(depth, "# EXP_CALL");
+        case EXPR_CALL:
+            print(depth, "# EXPR_CALL");
 
             if (typed_expr->children->len > 7)
                 error("6 個以上の実引数には対応していません");
@@ -163,7 +163,7 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             print(depth--, "pop rax");
 
             TypedExpr func = typed_expr_get_child(typed_expr, 0);
-            assert(func->kind == EXP_FUNC);
+            assert(func->kind == EXPR_FUNC);
             char *name = func->item->name;
 
             if (depth % 2 == 1) {
@@ -178,14 +178,14 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             print(depth++, "push rax");
             break;
 
-        case EXP_CONST_INT:
-            print(depth, "# EXP_CONST_INT");
+        case EXPR_CONST_INT:
+            print(depth, "# EXPR_CONST_INT");
 
             print(depth++, "push %d", typed_expr->val_int);
             break;
 
-        case EXP_LOCAL_VAR:
-            print(depth, "# EXP_LOCAL_VAR");
+        case EXPR_LOCAL_VAR:
+            print(depth, "# EXPR_LOCAL_VAR");
 
             gen_address(typed_expr, depth++);
 
@@ -194,16 +194,16 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             print(depth++, "push rax");
             break;
 
-        case EXP_GLOBAL_VAR:
-            print(depth, "# EXP_GLOBAL_VAR");
+        case EXPR_GLOBAL_VAR:
+            print(depth, "# EXPR_GLOBAL_VAR");
 
             mov_mem_to_reg(depth, typed_expr->type, REG_RAX,
                            typed_expr->item->name, "rip");
             print(depth++, "push rax");
             break;
 
-        case EXP_ASSIGN:
-            print(depth, "# EXP_ASSIGN");
+        case EXPR_ASSIGN:
+            print(depth, "# EXPR_ASSIGN");
 
             TypedExpr dst = typed_expr_get_child(typed_expr, 0);
             TypedExpr src = typed_expr_get_child(typed_expr, 1);
@@ -218,15 +218,15 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             print(depth++, "push rdi");
             break;
 
-        case EXP_ADDR:
-            print(depth, "# EXP_ADDR");
+        case EXPR_ADDR:
+            print(depth, "# EXPR_ADDR");
 
             gen_address(typed_expr_get_child(typed_expr, 0), depth++);
 
             break;
 
-        case EXP_DEREF:
-            print(depth, "# EXP_DEREF");
+        case EXPR_DEREF:
+            print(depth, "# EXPR_DEREF");
 
             gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
 
@@ -236,8 +236,8 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             print(depth++, "push rax");
             break;
 
-        case EXP_ADD: {
-            print(depth, "# EXP_ADD");
+        case EXPR_ADD: {
+            print(depth, "# EXPR_ADD");
 
             gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
             gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
@@ -249,8 +249,8 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             print(depth++, "push rax");
         } break;
 
-        case EXP_SUB:
-            print(depth, "# EXP_SUB");
+        case EXPR_SUB:
+            print(depth, "# EXPR_SUB");
 
             gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
             gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
@@ -262,8 +262,8 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             print(depth++, "push rax");
             break;
 
-        case EXP_MUL:
-            print(depth, "# EXP_MUL");
+        case EXPR_MUL:
+            print(depth, "# EXPR_MUL");
 
             gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
             gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
@@ -275,8 +275,8 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             print(depth++, "push rax");
             break;
 
-        case EXP_DIV:
-            print(depth, "# EXP_DIV");
+        case EXPR_DIV:
+            print(depth, "# EXPR_DIV");
 
             gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
             gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
@@ -289,8 +289,8 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             print(depth++, "push rax");
             break;
 
-        case EXP_MOD:
-            print(depth, "# EXP_MOD");
+        case EXPR_MOD:
+            print(depth, "# EXPR_MOD");
 
             gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
             gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
@@ -303,8 +303,8 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             print(depth++, "push rdx");
             break;
 
-        case EXP_EQUAL:
-            print(depth, "# EXP_EQUAL");
+        case EXPR_EQUAL:
+            print(depth, "# EXPR_EQUAL");
 
             gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
             gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
@@ -318,8 +318,8 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             print(depth++, "push rax");
             break;
 
-        case EXP_NOT_EQUAL:
-            print(depth, "# EXP_NOT_EQUAL");
+        case EXPR_NOT_EQUAL:
+            print(depth, "# EXPR_NOT_EQUAL");
 
             gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
             gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
@@ -333,8 +333,8 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             print(depth++, "push rax");
             break;
 
-        case EXP_LESS:
-            print(depth, "# EXP_LESS");
+        case EXPR_LESS:
+            print(depth, "# EXPR_LESS");
 
             gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
             gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
@@ -348,8 +348,8 @@ static void gen_typed_expr(TypedExpr typed_expr, int depth) {
             print(depth++, "push rax");
             break;
 
-        case EXP_LESS_OR_EQUAL:
-            print(depth, "# EXP_LESS_OR_EQUAL");
+        case EXPR_LESS_OR_EQUAL:
+            print(depth, "# EXPR_LESS_OR_EQUAL");
 
             gen_typed_expr(typed_expr_get_child(typed_expr, 0), depth++);
             gen_typed_expr(typed_expr_get_child(typed_expr, 1), depth++);
