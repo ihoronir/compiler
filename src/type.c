@@ -133,3 +133,8 @@ int type_is_integer(Type type) {
     }
     assert(0);
 }
+
+int type_is_pointer(Type type) {
+    if (type->kind == TY_PTR) return 1;
+    return 0;
+}

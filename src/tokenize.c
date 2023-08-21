@@ -135,6 +135,18 @@ void tokenize(char *p) {
             continue;
         }
 
+        if (!strncmp(p, "<<", 2)) {
+            tokens_push(TK_LESS_LESS, position);
+            p += 2;
+            continue;
+        }
+
+        if (!strncmp(p, ">>", 2)) {
+            tokens_push(TK_MORE_MORE, position);
+            p += 2;
+            continue;
+        }
+
         if (!strncmp(p, "==", 2)) {
             tokens_push(TK_EQUAL_EQUAL, position);
             p += 2;

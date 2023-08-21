@@ -70,6 +70,8 @@ typedef enum {
     TK_MORE,           // ">"
     TK_LESS_EQUAL,     // "<="
     TK_MORE_EQUAL,     // ">="
+    TK_LESS_LESS,      // "<<"
+    TK_MORE_MORE,      // ">>"
     TK_EQUAL_EQUAL,    // "=="
     TK_EXCL_EQUAL,     // "!="
     TK_PLUS_EQUAL,     // "+="
@@ -139,45 +141,74 @@ typedef struct string_item {
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 typedef enum {
-    EXPR_CONST_INT,      // 定数
-    EXPR_LOCAL_VAR,      // ローカル変数
-    EXPR_GLOBAL_VAR,     //
-    EXPR_FUNC,           //
-    EXPR_STRING,         //
-    EXPR_DEREF,          // *(expr[0])
-    EXPR_ADDR,           // &(expr[0])
-    EXPR_MUL,            // (expr[0]) *  (expr[1])
-    EXPR_DIV,            // (expr[0]) /  (expr[1])
-    EXPR_MOD,            // (expr[0]) %  (expr[1])
-    EXPR_ADD,            // (expr[0]) +  (expr[1])
-    EXPR_SUB,            // (expr[0]) -  (expr[1])
-    EXPR_LESS,           // (expr[0]) <  (expr[1])
-    EXPR_LESS_OR_EQUAL,  // (expr[0]) <= (expr[1])
-    EXPR_COMPOUND_ADD,   // (expr[0]) += (expr[1])
-    EXPR_EQUAL,          // (expr[0]) == (expr[1])
-    EXPR_NOT_EQUAL,      // (expr[0]) != (expr[1])
-    EXPR_ASSIGN,         // (expr[0]) =  (expr[1])
-    EXPR_CALL,           // (expr[0]) ( (expr[1]) , (expr[2]) , (expr[3]) )
-    EXPR_SIZEOF,         // sizeof [0]
-    EXPR_DECAY,          //
-} ExprKind;
+    UEXP_CONST_INT,      // 定数
+    UEXP_LOCAL_VAR,      // ローカル変数
+    UEXP_GLOBAL_VAR,     //
+    UEXP_FUNC,           //
+    UEXP_STRING,         //
+    UEXP_DEREF,          // *(expr[0])
+    UEXP_ADDR,           // &(expr[0])
+    UEXP_MUL,            // (expr[0]) *  (expr[1])
+    UEXP_DIV,            // (expr[0]) /  (expr[1])
+    UEXP_MOD,            // (expr[0]) %  (expr[1])
+    UEXP_ADD,            // (expr[0]) +  (expr[1])
+    UEXP_SUB,            // (expr[0]) -  (expr[1])
+    UEXP_LESS,           // (expr[0]) <  (expr[1])
+    UEXP_LESS_OR_EQUAL,  // (expr[0]) <= (expr[1])
+    UEXP_COMPOUND_ADD,   // (expr[0]) += (expr[1])
+    UEXP_SHL,            // (expr[0]) << (expr[1])
+    UEXP_SHR,            // (expr[0]) >> (expr[1])
+    UEXP_EQUAL,          // (expr[0]) == (expr[1])
+    UEXP_NOT_EQUAL,      // (expr[0]) != (expr[1])
+    UEXP_ASSIGN,         // (expr[0]) =  (expr[1])
+    UEXP_CALL,           // (expr[0]) ( (expr[1]) , (expr[2]) , (expr[3]) )
+    UEXP_SIZEOF,         // sizeof [0]
+} UntypedExprKind;
+
+typedef enum {
+    TEXP_CONST_INT,      // 定数
+    TEXP_LOCAL_VAR,      // ローカル変数
+    TEXP_GLOBAL_VAR,     //
+    TEXP_FUNC,           //
+    TEXP_STRING,         //
+    TEXP_DEREF,          // *(expr[0])
+    TEXP_ADDR,           // &(expr[0])
+    TEXP_MUL,            // (expr[0]) *  (expr[1])
+    TEXP_DIV,            // (expr[0]) /  (expr[1])
+    TEXP_MOD,            // (expr[0]) %  (expr[1])
+    TEXP_ADD,            // (expr[0]) +  (expr[1])
+    TEXP_SUB,            // (expr[0]) -  (expr[1])
+    TEXP_LESS,           // (expr[0]) <  (expr[1])
+    TEXP_LESS_OR_EQUAL,  // (expr[0]) <= (expr[1])
+    TEXP_COMPOUND_ADD,   // (expr[0]) += (expr[1])
+    TEXP_SHL,            // (expr[0]) << (expr[1])
+    TEXP_SHR,            // (expr[0]) >> (expr[1]) 論理
+    TEXP_SAR,            // (expr[0]) >> (expr[1]) 算術
+    TEXP_EQUAL,          // (expr[0]) == (expr[1])
+    TEXP_NOT_EQUAL,      // (expr[0]) != (expr[1])
+    TEXP_ASSIGN,         // (expr[0]) =  (expr[1])
+    TEXP_CALL,           // (expr[0]) ( (expr[1]) , (expr[2]) , (expr[3]) )
+    TEXP_DECAY,          //
+} TypedExprKind;
 
 StringItem new_string_item(char *str);
 
 // 式
 typedef struct untyped_expr {
-    ExprKind kind;
+    UntypedExprKind kind;
     Vec children;
+    // ここからオプション
     Item item;
     int val_int;
     StringItem string_item;
 } *UntypedExpr;
 
 typedef struct typed_expr {
-    ExprKind kind;
+    TypedExprKind kind;
     Vec children;
-    Item item;
     Type type;
+    // ここからオプション
+    Item item;
     int val_int;
     StringItem string_item;
 } *TypedExpr;
@@ -268,6 +299,7 @@ Type new_type_func(Type returning);
 int type_is_equal(Type type1, Type type2);
 int type_is_compatible(Type type1, Type type2);
 int type_is_integer(Type type);
+int type_is_pointer(Type type);
 char *type_reg_name(RegKind reg_kind, Type type);
 char *type_mov_cmd(Type type);
 
@@ -286,7 +318,7 @@ Item new_item_global_var(Type type, char *name);
 Item new_item_func(Type type, char *name);
 
 // expr.c
-UntypedExpr new_untyped_expr(ExprKind kind, ...);
+UntypedExpr new_untyped_expr(UntypedExprKind kind, ...);
 UntypedExpr new_untyped_expr_const_int(int val_int);
 UntypedExpr new_untyped_expr_string(StringItem string_item);
 // UntypedExpr new_untyped_expr_local_var(Scope scope, char *name);
@@ -304,6 +336,18 @@ ToplevelDefinition new_toplevel_definition_func(Scope scope, Type type,
                                                 Vec stmt_children);
 ToplevelDefinition new_toplevel_definition_global_var(Scope scope, Type type,
                                                       char *name);
+
+// typed_expr.c
+TypedExpr new_typed_expr_having_n_children(TypedExprKind kind, Type type,
+                                           Vec children);
+TypedExpr new_typed_expr_having_2_children(TypedExprKind kind, Type type,
+                                           TypedExpr child1, TypedExpr child2);
+TypedExpr new_typed_expr_having_1_child(TypedExprKind kind, Type type,
+                                        TypedExpr child);
+TypedExpr new_typed_expr_having_item(TypedExprKind kind, Item item);
+TypedExpr new_typed_expr_const_int(int val_int);
+TypedExpr new_typed_expr_string(StringItem string_item);
+TypedExpr typed_expr_get_child(TypedExpr typed_expr, int index);
 
 // Stmt new_stmt(StmtKind kind, ...);
 Stmt new_stmt_only_expr(UntypedExpr untyped_expr);
