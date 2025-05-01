@@ -1,14 +1,14 @@
-# compiler
+# C compiler from scratch
 
-自作 C コンパイラ
 
-[低レイヤを知りたい人のためのCコンパイラ作成入門](https://www.sigbus.info/compilerbook) を見ながら作っていく。
+Referenced website: [低レイヤを知りたい人のためのCコンパイラ作成入門](https://www.sigbus.info/compilerbook)
 
-## おもしろコンテンツ
 
-### 円周率の計算
+### Calculating pi
 
 円周率を計算するプログラムをコンパイルして実行します。
+
+Compile and run a program to calculate pi.
 
 ```
 $ make pi
